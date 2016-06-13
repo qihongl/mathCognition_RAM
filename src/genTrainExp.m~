@@ -3,8 +3,8 @@
 function [ ] = genTrainExp(numObj)
 
 % set parameters for objects and frame
-showImg = 0;
-saveImg = 1;
+showImg = 1;
+saveImg = 0;
 getPrototype = 0;
 
 obj.num = numObj;
@@ -50,9 +50,9 @@ end
 if saveImg
     imgFormat = '.jpg';
     if getPrototype
-        imgName = sprintf('proto%d', obj.num);
+        imgName = sprintf('proto%d.jpg', obj.num);
     else
-        imgName = sprintf('distorted%d', obj.num);
+        imgName = sprintf('e%d.jpg', obj.num);
     end
     
     imgName = strcat(imgName,imgFormat);
