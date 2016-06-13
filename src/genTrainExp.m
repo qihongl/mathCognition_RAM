@@ -3,9 +3,11 @@
 function [ ] = genTrainExp(numObj)
 
 % set parameters for objects and frame
-showImg = 0;
-saveImg = 1;
+showImg = 1;
+saveImg = 0;
+saveStruct = 0; 
 getPrototype = 0;
+
 
 obj.num = numObj;
 obj.radius = 5;
@@ -24,19 +26,14 @@ img = zeros(frame.ver, frame.hor);
 [x,y] = meshgrid(0: frame.hor, 0: frame.ver);
 coords = horzcat(x(:), y(:));
 
-
 % generated the coordinates for all objects
 obj.coords = getObjCoords(obj, frame);
 if ~getPrototype
-    for o = 1 : size(obj.coords,1)
-        randomMove = genRandVector(obj.radius);
-        randomMove = round(randomMove);
-        obj.coords(o,:) = obj.coords(o,:) + randomMove;
-    end
+    obj.coords = distortObjLocation(obj.coords, obj.radius);
 end
 
 % put objects on the frame
-[ img ] = placeObjs( obj, coords, img);
+img = placeObjs( obj, coords, img);
 
 
 %% plot
@@ -60,5 +57,8 @@ if saveImg
 end
 
 %% save as structure (numerical form)
+if saveStruct
+    
+end
 
 end
