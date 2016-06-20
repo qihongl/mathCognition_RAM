@@ -9,9 +9,10 @@ hold on
 nm = nan(sampleSize,1);
 for i= 1:sampleSize
     v = genRandVector(radius);
-    plot(v(1),v(2),'x')
+    plot(v(1),v(2),'bx')
     nm(i) = norm(v);
 end
+plot(0,0,'r+', 'linewidth', 2)
 axis square
 title('the sampling distribution of the coordinates')
 hold off
@@ -19,7 +20,7 @@ hold off
 % visualize the norms of the random vectors
 subplot(1,2,2)
 histogram(nm)
-xlabel('frequency'); ylabel('norm')
+ylabel('frequency'); xlabel('norm')
 title_text = sprintf('the sampling distribution of the norm \n mean norm: %f', mean(nm));
 title(title_text)
 
