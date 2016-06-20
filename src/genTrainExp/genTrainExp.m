@@ -37,6 +37,10 @@ end
 % put objects on the frame
 img = placeObjs( obj, coords, img);
 
+% pixel value in {1, 0}
+if sum(sum((img == true) | (img == false))) ~= frame.ver * frame.hor
+    warning('WOW: The pixel values are strange')
+end
 
 %% plot
 if showImg
@@ -55,6 +59,10 @@ end
 %% save as structure (numerical form)
 if saveStruct
     % TODO: to be implemented
+    imgFileFormat = '.mat';
+    imgFileName = strcat(param.imgName,imgFileFormat);
+    fullImgFileName = fullfile(param.saveDir,imgFileName);
+    save(fullImgFileName, 'img');
 end
 
 end

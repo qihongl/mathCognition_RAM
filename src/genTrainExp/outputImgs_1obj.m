@@ -10,7 +10,7 @@ imgName = 'oneObj';
 % set parameters for objects and frame
 param.showImg = 0;
 param.saveImg = 1;
-param.saveStruct = 0; 
+param.saveStruct = 1; 
 param.getPrototype = 0;
 
 
