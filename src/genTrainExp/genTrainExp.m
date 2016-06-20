@@ -1,6 +1,6 @@
 %% generate training examples for the counting task
 % space in between is fixed, objects are left aligned
-function [ ] = genTrainExp(numObj)
+function [ ] = genTrainExp(numObj, saveDir, imgName)
 
 % set parameters for objects and frame
 showImg = 0;
@@ -10,13 +10,16 @@ getPrototype = 0;
 
 
 obj.num = numObj;
-obj.radius = 5;
+obj.radius = 4;
+
 % the dimension of the image
-frame.ver = 30;
-frame.hor = 160;
+frame.ver = 28;
+frame.hor = 28;
 % empty spaces
-frame.boundary = obj.radius * 4;
-frame.space = obj.radius * 4;
+frame.boundary = obj.radius * 3;
+frame.space = obj.radius * 3;
+% 
+frame.distortion = obj.radius * 1.5; 
 
 
 %% generate images
@@ -29,7 +32,7 @@ coords = horzcat(x(:), y(:));
 % generated the coordinates for all objects
 obj.coords = getObjCoords(obj, frame);
 if ~getPrototype
-    obj.coords = distortObjLocation(obj.coords, obj.radius);
+    obj.coords = distortObjLocation(obj.coords, frame.distortion);
 end
 
 % put objects on the frame
@@ -46,14 +49,13 @@ end
 %% save the image
 if saveImg
     imgFormat = '.jpg';
-    if getPrototype
-        imgName = sprintf('proto%d', obj.num);
-    else
-        imgName = sprintf('distorted%d', obj.num);
-    end
-    
+%     if getPrototype
+%         imgName = sprintf('proto%d', obj.num);
+%     else
+%         imgName = sprintf('distorted%d', obj.num);
+%     end
     imgName = strcat(imgName,imgFormat);
-    imwrite(img, fullfile('../../plots/genTrainExp', imgName));
+    imwrite(img, fullfile(saveDir, imgName));
 end
 
 %% save as structure (numerical form)

@@ -1,5 +1,10 @@
 clear; 
 
+saveDir = '../../plots/genTrainExp';
+imgName = 'distorted';
+
+
 for n = 1 : 7 
-    genTrainExp(n);
+    thisImgName = sprintf('%s%d', imgName,n);
+    genTrainExp(n,saveDir);
 end
