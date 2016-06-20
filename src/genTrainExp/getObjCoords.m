@@ -1,6 +1,5 @@
 function [ coords ] = getObjCoords( obj, frame )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+
 pt_y = round(frame.ver / 2);
 pt_ys = repmat(pt_y, [obj.num,1]);
 pt_xs = frame.boundary + (0 : obj.num - 1)' * frame.space;

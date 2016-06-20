@@ -3,8 +3,8 @@
 function [ ] = genTrainExp(numObj)
 
 % set parameters for objects and frame
-showImg = 1;
-saveImg = 0;
+showImg = 0;
+saveImg = 1;
 saveStruct = 0; 
 getPrototype = 0;
 
@@ -38,7 +38,7 @@ img = placeObjs( obj, coords, img);
 
 %% plot
 if showImg
-    imagesc(img)
+    imagesc(img);
     colorbar
     axis equal
 end
@@ -53,12 +53,12 @@ if saveImg
     end
     
     imgName = strcat(imgName,imgFormat);
-    imwrite(img, fullfile('../plots/genTrainExp', imgName))
+    imwrite(img, fullfile('../../plots/genTrainExp', imgName));
 end
 
 %% save as structure (numerical form)
 if saveStruct
-    
+    % TODO: to be implemented
 end
 
 end
