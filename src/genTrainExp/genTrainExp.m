@@ -1,26 +1,25 @@
 %% generate training examples for the counting task
 % space in between is fixed, objects are left aligned
-function [ ] = genTrainExp(numObj, saveDir, imgName)
+function [ ] = genTrainExp(param)
 
-% set parameters for objects and frame
-showImg = 0;
-saveImg = 1;
-saveStruct = 0; 
-getPrototype = 0;
+%% set parameters for objects and frame
+showImg = param.showImg;
+saveImg = param.saveImg;
+saveStruct = param.saveStruct; 
+getPrototype = param.getPrototype;
 
 
-obj.num = numObj;
-obj.radius = 4;
+obj.num = param.obj_num;
+obj.radius = param.obj_radius;
 
 % the dimension of the image
-frame.ver = 28;
-frame.hor = 28;
+frame.ver = param.frame_ver;
+frame.hor = param.frame_hor;
 % empty spaces
-frame.boundary = obj.radius * 3;
-frame.space = obj.radius * 3;
+frame.boundary = param.frame_boundary;
+frame.space = param.frame_space;
 % 
-frame.distortion = obj.radius * 1.5; 
-
+frame.distortion = param.frame_distortion; 
 
 %% generate images
 % blank slate
@@ -49,13 +48,8 @@ end
 %% save the image
 if saveImg
     imgFormat = '.jpg';
-%     if getPrototype
-%         imgName = sprintf('proto%d', obj.num);
-%     else
-%         imgName = sprintf('distorted%d', obj.num);
-%     end
-    imgName = strcat(imgName,imgFormat);
-    imwrite(img, fullfile(saveDir, imgName));
+    imgName = strcat(param.imgName,imgFormat);
+    imwrite(img, fullfile(param.saveDir, imgName));
 end
 
 %% save as structure (numerical form)
