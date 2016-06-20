@@ -1,5 +1,3 @@
-# mathCognition_RAM
+# mathCognition_RAM (under construction...)
 
-Usage for the trainingImageGenerator:
-
-In matlab, type "outputImgs_1obj()", after setting all the parameters appropriately... 
+For the documentation, please refer to the wiki page.
