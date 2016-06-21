@@ -1,6 +1,6 @@
 %% understand the sampling distribution of the random vectors
 clear; close; 
-radius = 5; 
+radius = 6; 
 sampleSize = 2000; 
 
 % visualize the location of the random vectors
