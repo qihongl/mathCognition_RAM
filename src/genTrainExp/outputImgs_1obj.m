@@ -6,25 +6,22 @@ clear;
 % parameters
 param.saveDir = '../../plots/oneObj';
 imgName = 'oneObj';
+allPatterns = {'prototype', 'randomVec', 'allPoss'};
 
 % set parameters for objects and frame
-param.showImg = 0;
-param.saveImg = 1;
-param.saveStruct = 1; 
-param.getPrototype = 0;
+param.pattern = allPatterns{2};
+param.showImg = 1;
+param.saveImg = 0;
+param.saveStruct = 0; 
 
-
-param.obj_num = 1;
-param.obj_radius = 4;
-
-% the dimension of the image
-param.frame_ver = 28;
-param.frame_hor = 28;
-% empty spaces
-param.frame_boundary = param.obj_radius * 3;
-param.frame_space = param.obj_radius * 3;
-%  
-param.frame_distortion = param.obj_radius * 1.5; 
+% img parameter 
+param.obj_num = 1;          % number of objects
+param.obj_radius = 4;       % size of the object 
+param.frame_ver = 28;       % the length of the image
+param.frame_hor = 28;       % the height of the image
+param.frame_boundary = param.obj_radius * 3;    % space to the boundary of img
+param.frame_space = param.obj_radius * 3;       % space in between objects
+param.frame_distortion = param.obj_radius * 1.5; % magnitude of distortion
 
 
 %% generate images 
