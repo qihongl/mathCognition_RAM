@@ -1,7 +1,7 @@
 src/testTensorFlow/
 src/seann999/
 /plots
-
+src/simcep
 *.xml
 
 *.iml
