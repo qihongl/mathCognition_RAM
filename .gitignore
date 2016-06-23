@@ -4,7 +4,15 @@ src/seann999/
 /dep
 *.xml
 src/genTrainExpPy/main.py
-
+src/fixateOneObj/save/
 src/learnTF/MarshOrchid.jpg
 
 *.iml
+
+*.gz
+
+*.SUNet
+
+src/fixateOneObj/tf_mnist_loader.pyc
+
+src/fixateOneObj/tf_mnist_loader.py
