@@ -1,11 +1,10 @@
 src/testTensorFlow/
 src/seann999/
 /plots
-src/simcep
+/dep
 *.xml
-
-*.iml
-
 src/genTrainExpPy/main.py
 
 src/learnTF/MarshOrchid.jpg
+
+*.iml
