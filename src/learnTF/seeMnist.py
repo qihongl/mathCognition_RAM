@@ -51,14 +51,13 @@ img = batch_xs[0,:]
 img = np.reshape(img,[28,28])
 
 
-fig, ax = plt.subplots()
+# print np.mean(img)
+print '%d (%f) of the pixel values are zeros.' % (np.sum(img == 0), np.sum(img == 0) / 28 **2.0)
 
-ax.imshow(img,cmap=plt.get_cmap('gray'), interpolation="nearest")
-ax.plot([3,20],[3,20], '-o', color = 'lawngreen')
-
-
-
-plt.show()
+# fig, ax = plt.subplots()
+# ax.imshow(img,cmap=plt.get_cmap('gray'), interpolation="nearest")
+# ax.plot([3,20],[3,20], '-o', color = 'lawngreen')
+# plt.show()
 
 
 
