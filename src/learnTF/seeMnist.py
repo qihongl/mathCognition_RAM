@@ -4,6 +4,7 @@ Tryh the MNIST tutorial:  https://www.tensorflow.org/versions/r0.9/tutorials/mni
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 
 # load the MNIST data set
 from tensorflow.examples.tutorials.mnist import input_data
@@ -52,12 +53,24 @@ img = np.reshape(img,[28,28])
 
 
 # print np.mean(img)
-print '%d (%f) of the pixel values are zeros.' % (np.sum(img == 0), np.sum(img == 0) / 28 **2.0)
+# print '%d (%f) of the pixel values are zeros.' % (np.sum(img == 0), np.sum(img == 0) / 28 **2.0)
 
-# fig, ax = plt.subplots()
-# ax.imshow(img,cmap=plt.get_cmap('gray'), interpolation="nearest")
+fig, ax = plt.subplots()
+ax.imshow(img,cmap=plt.get_cmap('gray'), interpolation="nearest")
+
+
+r = 8
+seq = np.arange(0,2,.1) * math.pi
+numPoints = len(seq)
+
+
+
+x = np.sin(seq) * r + 14
+y = np.cos(seq) * r + 14
+
+ax.plot(x,y, '-o', color = 'lawngreen')
 # ax.plot([3,20],[3,20], '-o', color = 'lawngreen')
-# plt.show()
+plt.show()
 
 
 

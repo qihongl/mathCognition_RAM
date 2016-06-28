@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 
-data = np.random.uniform(-1, 1, size = [2,3,2])
+data = np.random.uniform(-1, 1, size = [4,3,2])
 normLoc = tf.constant(data, name = 'x')
 print data
 
@@ -17,8 +17,12 @@ print tf.shape(imgCoord)
 
 with tf.Session() as session:
     session.run(tf.initialize_all_variables())
+    temp = session.run(imgCoord)
     print(session.run(imgCoord))
 
+R = np.zeros(10)
+print R
+print type(temp)
 
 
 
