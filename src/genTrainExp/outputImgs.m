@@ -1,27 +1,29 @@
 %% generate some training examples
 % the image has only one object, the ram agent needs to learn to fixate at 
 % that object
-clear; 
+clear variables; close all; 
 
 % the number of images that you want to generate
 numImages = 5;
 
 % parameters
-param.saveDir = '../../plots/oneObj';
 imgName = 'oneObj';
+param.saveDir = strcat('../../plots/', imgName);
+% prototype: all objects are "centered"
+% randomVec: each object is translated by a random vector
+% allPoss: UNDER CONSTRUCTION
 allPatterns = {'prototype', 'randomVec', 'allPoss'};
+param.pattern = allPatterns{2};
 
 % set parameters for objects and frame
-param.pattern = allPatterns{2};
-param.showImg = 1;
-param.saveImg = 0;
-param.saveStruct = 0; 
-
+param.showImg = 1;          % display a sample image 
+param.saveImg = 0;          % same the image 
+param.saveStruct = 0;       % save the matrix representation 
 
 % img parameter 
 param.obj_num = 5;          % number of objects
 param.obj_radius = 3;       % size of the object 
-param.varySize = 1;         % random radius for object 
+param.varySize = 0;         % random radius for object 
 
 param.frame_ver = 28;       % the length of the image
 param.frame_hor = 80;       % the height of the image
