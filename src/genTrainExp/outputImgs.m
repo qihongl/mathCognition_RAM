@@ -4,13 +4,13 @@
 clear variables; close all; 
 
 % the number of images that you want to generate
-numImages = 5;
+numImages = 20;
 
 % parameters
-imgName = 'oneObj';
+imgName = 'multiObj';
 param.saveDir = strcat('../../plots/', imgName);
 
-% prototype: all objects are "centered"
+% prototype: all objects are "centered" and aligned
 % randomVec: each object is translated by a random vector
 % allPoss: UNDER CONSTRUCTION
 allPatterns = {'prototype', 'randomVec', 'allPoss'};
@@ -18,18 +18,18 @@ param.pattern = allPatterns{2};
 
 % set parameters for objects and frame
 param.showImg = 1;          % display a sample image 
-param.saveImg = 0;          % same the image 
-param.saveStruct = 0;       % save the matrix representation 
+param.saveImg = 1;          % same the image 
+param.saveStruct = 1;       % save the matrix representation 
 
 % img parameter 
 param.obj_num = 5;          % number of objects
-param.obj_radius = 3;       % size of the object 
+param.obj_radius = 4;       % size of the object 
 param.varySize = 0;         % random radius for object 
 
 param.frame_ver = 28;       % the length of the image
 param.frame_hor = 80;       % the height of the image
 param.frame_boundary = param.obj_radius * 3;    % space to the boundary of img
-param.frame_space = param.obj_radius * 4;       % space in between objects
+param.frame_space = param.obj_radius * 3;       % space in between objects
 
 param.frame_distortion = param.obj_radius * 1; % magnitude of distortion
 allDistributions = {'circle', 'ellipse', 'rectangle'};
