@@ -23,16 +23,13 @@ elseif strcmp(typeDistribution, 'rectangle')
     vector = [x, y];
     
 elseif strcmp(typeDistribution, 'ellipse')
-    
     r1 = maxLength;     % x dim 
-    r2 = maxLength*2;   % y dim
-    n = 1;  % number of vector to be generated, always 1 here 
-    
+    r2 = maxLength*2;   % y dim    
     while true
-        % Uniform rectangle with extras
+        % Uniform rectangle 
         x = r1 * (2*rand-1);
         y = r2 * (2*rand-1);
-        % Remove those not in the ellipse
+        % break if in the ellipse
         if (x.*x/(r1^2)+y.*y/(r2^2)) < 1
             break;
         end
