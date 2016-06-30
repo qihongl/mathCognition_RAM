@@ -24,7 +24,7 @@ param.saveStruct = 1;       % save the matrix representation
 % img parameter 
 param.obj_num = 5;          % number of objects
 param.obj_radius = 4;       % size of the object 
-param.varySize = 0;         % random radius for object 
+param.varySize = 1;         % random radius for object 
 
 param.frame_ver = 28;       % the length of the image
 param.frame_hor = 80;       % the height of the image
