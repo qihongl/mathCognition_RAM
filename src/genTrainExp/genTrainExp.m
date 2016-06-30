@@ -7,6 +7,7 @@ saveImg = param.saveImg;
 saveStruct = param.saveStruct; 
 pattern = param.pattern;
 obj.num = param.obj_num;
+obj.varySize = param.varySize; 
 obj.radius = param.obj_radius;
 frame.ver = param.frame_ver;
 frame.hor = param.frame_hor;
@@ -35,7 +36,7 @@ else
 end
 
 % put objects on the frame
-img = placeObjs(obj, coords, img);
+img = drawObjs(obj, coords, img);
 
 % pixel value in {1, 0}
 if sum(sum((img == true) | (img == false))) ~= frame.ver * frame.hor

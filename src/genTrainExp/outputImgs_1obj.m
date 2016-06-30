@@ -3,6 +3,9 @@
 % that object
 clear; 
 
+% the number of images that you want to generate
+numImages = 5;
+
 % parameters
 param.saveDir = '../../plots/oneObj';
 imgName = 'oneObj';
@@ -14,18 +17,21 @@ param.showImg = 1;
 param.saveImg = 0;
 param.saveStruct = 0; 
 
+
 % img parameter 
-param.obj_num = 1;          % number of objects
-param.obj_radius = 4;       % size of the object 
+param.obj_num = 5;          % number of objects
+param.obj_radius = 3;       % size of the object 
+param.varySize = 1;         % random radius for object 
+
 param.frame_ver = 28;       % the length of the image
-param.frame_hor = 28;       % the height of the image
+param.frame_hor = 80;       % the height of the image
 param.frame_boundary = param.obj_radius * 3;    % space to the boundary of img
 param.frame_space = param.obj_radius * 3;       % space in between objects
 param.frame_distortion = param.obj_radius * 1.5; % magnitude of distortion
 
 
 %% generate images 
-for n = 1 : 20
+for n = 1 : numImages
     param.imgName = sprintf('%s%.3d', imgName, n);
     genTrainExp(param);
 end
