@@ -15,8 +15,8 @@ start_step = 0
 load_path = save_dir + save_prefix + str(start_step) + ".ckpt"
 # to enable visualization, set draw to True
 eval_only = False
-animate = False
-draw = False
+animate = 0
+draw = 0
 
 # glimpse parameters
 minRadius = 4               # zooms -> minRadius * 2**<depth_level>
@@ -170,6 +170,26 @@ def gaussian_pdf(mean, sample):
     return Z * tf.exp(a)
 
 
+def thresholding(X, upperThreshold, lowerThreshold, shape):
+    '''
+    Bound the coordinates on the training imgages.
+    :param X: the input tensor
+    :param upperThreshold: the upper limit allowed
+    :param lowerThreshold: the lower limit allowed
+    :param shape: the shape of X (TODO: read it automatically)
+    :return: the input tensor without any "out-of-range" value
+    '''
+    lower_bound = np.tile(lowerThreshold, shape)
+    upper_bound = np.tile(upperThreshold, shape)
+    lower_bound = tf.Variable(lower_bound, name='lowerThresholdForMask')
+    upper_bound = tf.Variable(upper_bound, name='upperThresholdForMask')
+    lower_bound = tf.cast(lower_bound, tf.int32)
+    upper_bound = tf.cast(upper_bound, tf.int32)
+    X = tf.maximum(X, lower_bound)
+    X = tf.minimum(X, upper_bound)
+    return X
+
+
 def calc_reward(outputs, imgBatch):
     # conside the action at the last time step
     outputs = outputs[-1] # look at ONLY THE END of the sequence
@@ -186,22 +206,13 @@ def calc_reward(outputs, imgBatch):
     correct_y = tf.cast(labels_placeholder, tf.int64)
 
     ''''''
-
     # reshape the input images to x-y coordinate form (10,28,28)
     imgs = tf.reshape(imgBatch, [batchSize, mnist_size, mnist_size])
     # get the coordinate for the glimpse (10,6,2)
     glmpCoords = (sampled_locs + 1) / 2 * mnist_size
     glmpCoords = tf.cast(tf.round(glmpCoords), tf.int32)
-
     # bound the coordinates on the training imgages
-    lower_bound = np.tile(0, [batchSize, nGlimpses, 2])
-    upper_bound = np.tile(mnist_size - 1, [batchSize, nGlimpses, 2])
-    lower_bound = tf.Variable(lower_bound, name='lowerThresholdForMask')
-    upper_bound = tf.Variable(upper_bound, name='upperThresholdForMask')
-    lower_bound = tf.cast(lower_bound, tf.int32)
-    upper_bound = tf.cast(upper_bound, tf.int32)
-    glmpCoords = tf.maximum(glmpCoords, lower_bound)
-    glmpCoords = tf.minimum(glmpCoords, upper_bound)
+    glmpCoords = thresholding(glmpCoords, mnist_size - 1, 0, [batchSize, nGlimpses, 2])
 
     # preallocate for R
     R = tf.constant(np.zeros(batchSize), name='R')
@@ -209,33 +220,30 @@ def calc_reward(outputs, imgBatch):
     batchIdx = tf.constant(np.arange(batchSize), dtype=tf.int32)
     batchIdx = tf.reshape(batchIdx, [batchSize, 1])
 
-    # for i in xrange(nGlimpses):  # loop over glimpses
-
-    # only consider the last glimpse
-    i = nGlimpses - 1  # zero based index
-    # get the location coordinates for all examples in the batch
-    ithGlmpCoords = tf.slice(glmpCoords, [0, i, 0], [batchSize, 1, 2])
-    ithGlmpCoords = tf.reduce_sum(ithGlmpCoords, 1)  # # 10 x 1 x 2 -> # 10 x 2
-    ithGlmpCoords = tf.concat(1, [batchIdx, ithGlmpCoords])
-    # get the pixel values
-    pixVal = tf.gather_nd(imgs, ithGlmpCoords)
-    R += tf.cast(tf.greater(pixVal, zeroVector), tf.float64)
+    for i in xrange(nGlimpses):  # loop over glimpses
+        # only consider the last glimpse
+        # get the location coordinates for all examples in the batch
+        ithGlmpCoords = tf.slice(glmpCoords, [0, i, 0], [batchSize, 1, 2])
+        ithGlmpCoords = tf.reduce_sum(ithGlmpCoords, 1)  # # 10 x 1 x 2 -> # 10 x 2
+        ithGlmpCoords = tf.concat(1, [batchIdx, ithGlmpCoords])
+        # get the pixel values w.r.t the glimpse location
+        pixVal = tf.gather_nd(imgs, ithGlmpCoords)
+        # if pixvel(glimpse location) > 0, then R = 1, else R = 0
+        R += tf.cast(tf.greater(pixVal, zeroVector), tf.float64)
 
     R = tf.cast(R, tf.float32)
-    reward = tf.reduce_mean(R)  # mean reward
+    reward = tf.reduce_mean(R)  # mean reward over batch and nGlimpses
     ''''''
     # sample the location from the gaussian distribution
     p_loc = gaussian_pdf(mean_locs, sampled_locs)
     p_loc = tf.reshape(p_loc, (batchSize, nGlimpses * 2))
 
-    print R
     R = tf.reshape(R, (batchSize, 1))
     R = tf.cast(R, tf.float32)
-    print R
-    print tf.log(p_loc + 1e-5)
     # 1 means concatenate along the row direction
-    J = tf.concat(1, [tf.log(p_y + 1e-5) * onehot_labels_placeholder, tf.log(p_loc + 1e-5) * R])
-    # J = tf.log(p_loc + 1e-5) * R
+    # J = tf.concat(1, [tf.log(p_y + 1e-5) * onehot_labels_placeholder, tf.log(p_loc + 1e-5) * R])
+    J = tf.concat(1, [tf.log(p_loc + 1e-5) * R])
+
     # sum the probability of action and location
     J = tf.reduce_sum(J, 1)
     # average over batch
@@ -263,7 +271,6 @@ def evaluate():
         accuracy += r
 
     accuracy /= batches_in_epoch
-
     print("ACCURACY: " + str(accuracy))
 
 
