@@ -9,6 +9,7 @@ numImages = 5;
 % parameters
 imgName = 'oneObj';
 param.saveDir = strcat('../../plots/', imgName);
+
 % prototype: all objects are "centered"
 % randomVec: each object is translated by a random vector
 % allPoss: UNDER CONSTRUCTION
@@ -28,8 +29,11 @@ param.varySize = 0;         % random radius for object
 param.frame_ver = 28;       % the length of the image
 param.frame_hor = 80;       % the height of the image
 param.frame_boundary = param.obj_radius * 3;    % space to the boundary of img
-param.frame_space = param.obj_radius * 3;       % space in between objects
-param.frame_distortion = param.obj_radius * 1.5; % magnitude of distortion
+param.frame_space = param.obj_radius * 4;       % space in between objects
+
+param.frame_distortion = param.obj_radius * 1; % magnitude of distortion
+allDistributions = {'circle', 'ellipse', 'rectangle'};
+param.frame_randVecDistribution = allDistributions{2};
 
 
 %% generate images 

@@ -14,6 +14,7 @@ frame.hor = param.frame_hor;
 frame.boundary = param.frame_boundary;
 frame.space = param.frame_space;
 frame.distortion = param.frame_distortion; 
+frame.randVecDistribution = param.frame_randVecDistribution;
 
 %% generate images
 % blank slate
@@ -28,7 +29,7 @@ obj.coords = getObjCoords(obj, frame);
 if strcmp(pattern,'prototype')
     % do nothing
 elseif strcmp(pattern,'randomVec')
-    obj.coords = distortObjLocation(obj.coords, frame.distortion);
+    obj.coords = distortObjLocation(obj.coords, frame);
 elseif strcmp(pattern,'allPoss')
     % TODO
 else

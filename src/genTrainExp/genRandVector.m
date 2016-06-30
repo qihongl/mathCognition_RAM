@@ -1,14 +1,46 @@
 %% generate random vector s.t. norm(vec) < l, where l is pre-sepcified
-function [ vector ] = genRandVector(maxLength)
+function [ vector ] = genRandVector(maxLength, typeDistribution)
+if maxLength <= 0 
+    error('maxLength has to be positive')
+end
 
-% generate r and theta, uniformly 
-r = sqrt(rand);
-theta = rand * 2 * pi;
+if strcmp(typeDistribution, 'circle')
+    % generate r and theta, uniformly 
+    r = sqrt(rand);
+    theta = rand * 2 * pi;
+    % compute the coordinates 
+    x = r * cos(theta);
+    y = r * sin(theta);
+    % scale by the max length
+    vector = [x,y] .* maxLength;
+    
+elseif strcmp(typeDistribution, 'rectangle')
+    r1 = maxLength;     % x dim 
+    r2 = maxLength*2;   % y dim
+    % Uniform rectangle 
+    x = r1 * (2*rand-1);
+    y = r2 * (2*rand-1);
+    vector = [x, y];
+    
+elseif strcmp(typeDistribution, 'ellipse')
+    
+    r1 = maxLength;     % x dim 
+    r2 = maxLength*2;   % y dim
+    n = 1;  % number of vector to be generated, always 1 here 
+    
+    while true
+        % Uniform rectangle with extras
+        x = r1 * (2*rand-1);
+        y = r2 * (2*rand-1);
+        % Remove those not in the ellipse
+        if (x.*x/(r1^2)+y.*y/(r2^2)) < 1
+            break;
+        end
+    end
+    vector = [x, y];
+else
+    error('Unrecognizable distribution type for the distortion.')
+end
 
-% compute the coordinates 
-x = r * cos(theta);
-y = r * sin(theta);
 
-% scale by the max length
-vector = [x,y] .* maxLength;
 end

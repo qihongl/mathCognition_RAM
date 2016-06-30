@@ -16,3 +16,5 @@ src/learnTF/MarshOrchid.jpg
 src/fixateOneObj/tf_mnist_loader.pyc
 
 src/fixateOneObj/tf_mnist_loader.py
+
+src/genTrainExp/testing.m
