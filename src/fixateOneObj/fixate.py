@@ -43,7 +43,7 @@ mnistSize = 28              # side length of the picture
 # pic_ver = 28
 # pic_hor = 28
 
-loc_sd = 0.03               # std when setting the location
+loc_sd = 0.1               # std when setting the location
 mean_locs = []              #
 sampled_locs = []           # ~N(mean_locs[.], loc_sd)
 glimpse_images = []         # to show in window
@@ -173,10 +173,10 @@ def thresholding(X, upperThreshold, lowerThreshold, shape):
     :param X: the input tensor
     :param upperThreshold: the upper limit allowed
     :param lowerThreshold: the lower limit allowed
-    :param shape: the shape of X (TODO: read it automatically)
+    :param shape: the shape of X (read it automatically)
     :return: the input tensor without any "out-of-range" value
     '''
-    lower_bound = np.tile(lowerThreshold, shape)
+    lower_bound = np.tile(lowerThreshold, shape)    # get_shape
     upper_bound = np.tile(upperThreshold, shape)
     lower_bound = tf.Variable(lower_bound, name='lowerThresholdForMask')
     upper_bound = tf.Variable(upper_bound, name='upperThresholdForMask')
@@ -219,8 +219,8 @@ def calc_reward(outputs, imgBatch):
     batchIdx = tf.constant(np.arange(batchSize), dtype=tf.int32)
     batchIdx = tf.reshape(batchIdx, [batchSize, 1])
 
+
     for i in xrange(nGlimpses):  # loop over glimpses
-        # only consider the last glimpse
         # get the location coordinates for all examples in the batch
         ithGlmpCoords = tf.slice(glmpCoords, [0, i, 0], [batchSize, 1, 2])
         ithGlmpCoords = tf.reduce_sum(ithGlmpCoords, 1)  # # 10 x 1 x 2 -> # 10 x 2
@@ -341,6 +341,18 @@ with tf.Graph().as_default():
 
             duration = time.time() - start_time
 
+            ''''''
+            # print sampled_locs.eval()
+            #
+            # sess.run(sampled_locs)
+            #
+            # sampled_locs_x = sess.run(sampled_locs)
+            # sampled_locs_y = sess.run(sampled_locs[0,:,1])
+            #
+            # # print sampled_locs_x
+            # sys.exit('STOP HERE')
+            ''''''
+
             if step % 20 == 0:
                 if step % 1000 == 0:
                     saver.save(sess, save_dir + save_prefix + str(step) + ".ckpt")
@@ -357,28 +369,31 @@ with tf.Graph().as_default():
                         if len(plotImgs) == 0:
                             fillList = True
 
-                        # display first in mini-batch
-                        # display the entire image
+                        # display first img in the mini-batch
                         nCols = 4
+                        # display the entire image
                         whole = plt.subplot2grid((3, nCols), (0, 1), rowspan=3, colspan=3)
                         whole = plt.imshow(np.reshape(nextX[0,:], [mnistSize,mnistSize]),
                                            cmap=plt.get_cmap('gray'), interpolation="nearest")
+                        # TODO
+                        # plt.plot(sampled_locs[0,:,0], sampled_locs[0,:,1], '-o', color='lawngreen')
                         whole.autoscale()
                         fig.canvas.draw()
 
+
                         # display the glimpses
-                        for y in xrange(nGlimpses):
+                        for i in xrange(nGlimpses):
                             txt.set_text('FINAL PREDICTION: %i\nTRUTH: %i\nSTEP: %i/%i'
-                                         % (prediction_labels_fetched[0], correct_labels_fetched[0], (y + 1), nGlimpses))
+                                         % (prediction_labels_fetched[0], correct_labels_fetched[0], (i + 1), nGlimpses))
 
                             for x in xrange(depth):
                                 plt.subplot(depth, nCols, 1+nCols*x)
                                 if fillList:
-                                    plotImg = plt.imshow(f_glimpse_images[y, 0, x], cmap=plt.get_cmap('gray'), interpolation="nearest")
+                                    plotImg = plt.imshow(f_glimpse_images[i, 0, x], cmap=plt.get_cmap('gray'), interpolation="nearest")
                                     plotImg.autoscale()
                                     plotImgs.append(plotImg)
                                 else:
-                                    plotImgs[x].set_data(f_glimpse_images[y, 0, x])
+                                    plotImgs[x].set_data(f_glimpse_images[i, 0, x])
                                     plotImgs[x].autoscale()
                             fillList = False
 
@@ -389,9 +404,9 @@ with tf.Graph().as_default():
                     else:
                         txt.set_text('PREDICTION: %i\nTRUTH: %i' % (prediction_labels_fetched[0], correct_labels_fetched[0]))
                         for x in xrange(depth):
-                            for y in xrange(nGlimpses):
-                                plt.subplot(depth, nGlimpses, x * nGlimpses + y + 1)
-                                plt.imshow(f_glimpse_images[y, 0, x], cmap=plt.get_cmap('gray'),
+                            for i in xrange(nGlimpses):
+                                plt.subplot(depth, nGlimpses, x * nGlimpses + i + 1)
+                                plt.imshow(f_glimpse_images[i, 0, x], cmap=plt.get_cmap('gray'),
                                            interpolation="nearest")
 
                         plt.draw()
