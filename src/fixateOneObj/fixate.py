@@ -15,8 +15,8 @@ start_step = 0
 load_path = save_dir + save_prefix + str(start_step) + ".ckpt"
 # to enable visualization, set draw to True
 eval_only = 0
-animate = 1
-draw = 1
+animate = 0
+draw = 0
 
 # glimpse parameters
 minRadius = 4               # zooms -> minRadius * 2**<depth_level>
@@ -43,14 +43,14 @@ mnistSize = 28              # side length of the picture
 # pic_ver = 28
 # pic_hor = 28
 
-loc_sd = 0.1               # std when setting the location
+loc_sd = 0.03               # std when setting the location
 mean_locs = []              #
 sampled_locs = []           # ~N(mean_locs[.], loc_sd)
 glimpse_images = []         # to show in window
 
 # set the weights to be small random values, with truncated normal distribution
-def weight_variable(shape):
-    initial = tf.truncated_normal(shape, stddev=1.0/shape[0]) # for now
+def weight_variable(paramShape):
+    initial = tf.truncated_normal(paramShape, stddev=1.0/paramShape[0]) # for now
     return tf.Variable(initial)
 
 # given the a batch of images and the location, return some glimpses
@@ -107,12 +107,14 @@ def get_glimpse(normLoc):
     # the hidden units that process location & the glimpse
     l_hl = weight_variable((2, hl_size))
     glimpse_hg = weight_variable((totalSensorBandwidth, hg_size))
+
     hg = tf.nn.relu(tf.matmul(glimpse_input, glimpse_hg))
     hl = tf.nn.relu(tf.matmul(normLoc, l_hl))
 
     # the hidden units that integrates the location & the glimpses
     hg_g = weight_variable((hg_size, g_size))
     hl_g = weight_variable((hl_size, g_size))
+
     g = tf.nn.relu(tf.matmul(hg, hg_g) + tf.matmul(hl, hl_g))
     
     return g # glimpse feature
@@ -124,7 +126,8 @@ def get_next_input(output, i):
     mean_locs.append(mean_loc)
 
     # the actual location used for generating glimpses
-    sample_loc = mean_loc + tf.random_normal(mean_loc.get_shape(), 0, loc_sd)
+    # sample_loc = mean_loc + tf.random_normal(mean_loc.get_shape(), 0, loc_sd)
+    sample_loc = tf.tanh(mean_loc + tf.random_normal(mean_loc.get_shape(), 0, loc_sd))
     sampled_locs.append(sample_loc)
     
     return get_glimpse(sample_loc)
@@ -190,18 +193,18 @@ def thresholding(X, upperThreshold, lowerThreshold, shape):
 # TODO implement the hand, then R: handLocation -> {0,1}
 def calc_reward(outputs, imgBatch):
     # conside the action at the last time step
-    outputs = outputs[-1] # look at ONLY THE END of the sequence
-    outputs = tf.reshape(outputs, (batchSize, cell_out_size))
-
-    # the hidden layer for the action network
-    h_a_out = weight_variable((cell_out_size, n_classes))
-
-    # process its output
-    p_y = tf.nn.softmax(tf.matmul(outputs, h_a_out))
-
-    max_p_y = tf.arg_max(p_y, 1)
-    # the targets
-    correct_y = tf.cast(labels_placeholder, tf.int64)
+    # outputs = outputs[-1] # look at ONLY THE END of the sequence
+    # outputs = tf.reshape(outputs, (batchSize, cell_out_size))
+    #
+    # # the hidden layer for the action network
+    # h_a_out = weight_variable((cell_out_size, n_classes))
+    #
+    # # process its output
+    # p_y = tf.nn.softmax(tf.matmul(outputs, h_a_out))
+    #
+    # max_p_y = tf.arg_max(p_y, 1)
+    # # the targets
+    # correct_y = tf.cast(labels_placeholder, tf.int64)
 
     ''''''
     # reshape the input images to x-y coordinate form (10,28,28)
@@ -209,9 +212,6 @@ def calc_reward(outputs, imgBatch):
     # get the coordinate for the glimpse (10,6,2)
     glmpCoords = (sampled_locs + 1) / 2 * mnistSize
     glmpCoords = tf.cast(tf.round(glmpCoords), tf.int32)
-    # bound the coordinates on the training imgages
-    # TODO a better implementation: if glimpses out of bound, then R = 0
-    glmpCoords = thresholding(glmpCoords, mnistSize - 1, 0, [batchSize, nGlimpses, 2])
 
     # preallocate for R
     R = tf.constant(np.zeros(batchSize), name='R')
@@ -223,7 +223,7 @@ def calc_reward(outputs, imgBatch):
     for i in xrange(nGlimpses):  # loop over glimpses
         # get the location coordinates for all examples in the batch
         ithGlmpCoords = tf.slice(glmpCoords, [0, i, 0], [batchSize, 1, 2])
-        ithGlmpCoords = tf.reduce_sum(ithGlmpCoords, 1)  # # 10 x 1 x 2 -> # 10 x 2
+        ithGlmpCoords = tf.reduce_sum(ithGlmpCoords, 1)  # 10 x 1 x 2 -> # 10 x 2
         ithGlmpCoords = tf.concat(1, [batchIdx, ithGlmpCoords])
         # get the pixel values w.r.t the glimpse location
         pixVal = tf.gather_nd(imgs, ithGlmpCoords)
@@ -241,7 +241,6 @@ def calc_reward(outputs, imgBatch):
     R = tf.cast(R, tf.float32)
     # 1 means concatenate along the row direction
     # J = tf.concat(1, [tf.log(p_y + 1e-5) * onehot_labels_placeholder, tf.log(p_loc + 1e-5) * R])
-    # TODO remove the weights for the classification network
     J = tf.concat(1, [tf.log(p_loc + 1e-5) * R])
 
     # sum the probability of action and location
@@ -255,7 +254,8 @@ def calc_reward(outputs, imgBatch):
     optimizer = tf.train.AdamOptimizer(learningRate)
     train_op = optimizer.minimize(cost)
 
-    return cost, reward, max_p_y, correct_y, train_op
+    # return cost, reward, max_p_y, correct_y, train_op
+    return cost, reward, train_op
 
 
 def evaluate():
@@ -286,8 +286,8 @@ with tf.Graph().as_default():
     onehot_labels_placeholder = tf.placeholder(tf.float32, shape=(batchSize, 10), name="oneHotLabels")
 
     #
-    h_l_out = weight_variable((cell_out_size, 2))
-    loc_mean = weight_variable((batchSize, nGlimpses, 2))
+    h_l_out = weight_variable([cell_out_size, 2])
+    loc_mean = weight_variable([batchSize, nGlimpses, 2])
 
     # query the model ouput
     outputs = model()
@@ -301,7 +301,8 @@ with tf.Graph().as_default():
     glimpse_images = tf.concat(0, glimpse_images)
 
     #
-    cost, reward, predicted_labels, correct_labels, train_op = calc_reward(outputs, inputs_placeholder)
+    # cost, reward, predicted_labels, correct_labels, train_op = calc_reward(outputs, inputs_placeholder)
+    cost, reward, train_op = calc_reward(outputs, inputs_placeholder)
 
     tf.scalar_summary("reward", reward)
     tf.scalar_summary("cost", cost)
@@ -333,11 +334,14 @@ with tf.Graph().as_default():
             nextX, nextY = dataset.train.next_batch(batchSize)
             feed_dict = {inputs_placeholder: nextX, labels_placeholder: nextY,
                          onehot_labels_placeholder: dense_to_one_hot(nextY)}
-            fetches = [train_op, cost, reward, predicted_labels, correct_labels, glimpse_images]
+            # fetches = [train_op, cost, reward, predicted_labels, correct_labels, glimpse_images]
+            fetches = [train_op, cost, reward, glimpse_images]
             # feed them to the model
             results = sess.run(fetches, feed_dict=feed_dict)
-            _, cost_fetched, reward_fetched, prediction_labels_fetched, \
-            correct_labels_fetched, f_glimpse_images_fetched = results
+            # _, cost_fetched, reward_fetched, prediction_labels_fetched, \
+            # correct_labels_fetched, f_glimpse_images_fetched = results
+
+            _, cost_fetched, reward_fetched, f_glimpse_images_fetched = results
 
             duration = time.time() - start_time
 
@@ -383,8 +387,11 @@ with tf.Graph().as_default():
 
                         # display the glimpses
                         for i in xrange(nGlimpses):
-                            txt.set_text('FINAL PREDICTION: %i\nTRUTH: %i\nSTEP: %i/%i'
-                                         % (prediction_labels_fetched[0], correct_labels_fetched[0], (i + 1), nGlimpses))
+                            # txt.set_text('FINAL PREDICTION: %i\nTRUTH: %i\nSTEP: %i/%i'
+                            #              % (prediction_labels_fetched[0], correct_labels_fetched[0], (i + 1), nGlimpses))
+
+                            txt.set_text('Fixation \nSTEP: %i/%i'
+                                         % ((i + 1), nGlimpses))
 
                             for x in xrange(depth):
                                 plt.subplot(depth, nCols, 1+nCols*x)
@@ -402,7 +409,7 @@ with tf.Graph().as_default():
                             plt.pause(0.0001)
 
                     else:
-                        txt.set_text('PREDICTION: %i\nTRUTH: %i' % (prediction_labels_fetched[0], correct_labels_fetched[0]))
+                        # txt.set_text('PREDICTION: %i\nTRUTH: %i' % (prediction_labels_fetched[0], correct_labels_fetched[0]))
                         for x in xrange(depth):
                             for i in xrange(nGlimpses):
                                 plt.subplot(depth, nGlimpses, x * nGlimpses + i + 1)
