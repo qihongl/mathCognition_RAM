@@ -13,7 +13,8 @@ frame.ver = param.frame_ver;
 frame.hor = param.frame_hor;
 frame.boundary = param.frame_boundary;
 frame.space = param.frame_space;
-frame.distortion = param.frame_distortion; 
+frame.distortion_x = param.distortion_x; 
+frame.distortion_y = param.distortion_y; 
 frame.randVecDistribution = param.frame_randVecDistribution;
 
 %% generate images
@@ -50,7 +51,8 @@ end
 if showImg
     imagesc(img);
     colorbar
-    axis equal
+    axis equal tight
+    colormap gray
 end
 
 % save the image

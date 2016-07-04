@@ -8,7 +8,6 @@ if obj.radius <= minRadiusAllowed
     error('The input object radius parameter is too small!')
 end
     
-
 % pairwise distance matrix for all pixels on the image
 distmat = squareform(pdist(frameCoords));
 

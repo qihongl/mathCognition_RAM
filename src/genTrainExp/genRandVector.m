@@ -1,43 +1,37 @@
 %% generate random vector s.t. norm(vec) < l, where l is pre-sepcified
-function [ vector ] = genRandVector(maxLength, typeDistribution)
-if maxLength <= 0 
+function [ vector ] = genRandVector(maxLength_x, maxLength_y, typeDistribution)
+% check input argument
+lowerBound_raduis = 0; 
+if maxLength_x <= lowerBound_raduis || maxLength_y <= lowerBound_raduis 
     error('maxLength has to be positive')
 end
 
-if strcmp(typeDistribution, 'circle')
-    % generate r and theta, uniformly 
-    r = sqrt(rand);
-    theta = rand * 2 * pi;
-    % compute the coordinates 
-    x = r * cos(theta);
-    y = r * sin(theta);
-    % scale by the max length
-    vector = [x,y] .* maxLength;
+if strcmp(typeDistribution, 'rectangular')
+    % Uniformly sample from a rectangle
+    [x,y] = getRectPts (maxLength_x, maxLength_y);
     
-elseif strcmp(typeDistribution, 'rectangle')
-    r1 = maxLength;     % x dim 
-    r2 = maxLength*2;   % y dim
-    % Uniform rectangle 
-    x = r1 * (2*rand-1);
-    y = r2 * (2*rand-1);
-    vector = [x, y];
-    
-elseif strcmp(typeDistribution, 'ellipse')
-    r1 = maxLength;     % x dim 
-    r2 = maxLength*2;   % y dim    
+elseif strcmp(typeDistribution, 'elliptical')
     while true
-        % Uniform rectangle 
-        x = r1 * (2*rand-1);
-        y = r2 * (2*rand-1);
+        % Uniformly sample from a rectangle
+        [x,y] = getRectPts (maxLength_x, maxLength_y);
         % break if in the ellipse
-        if (x.*x/(r1^2)+y.*y/(r2^2)) < 1
+        if (x.*x/(maxLength_x^2)+y.*y/(maxLength_y^2)) < 1
             break;
         end
     end
-    vector = [x, y];
+    
 else
     error('Unrecognizable distribution type for the distortion.')
 end
 
+% concatenate to get a vector
+vector = horzcat(x,y);
 
+end
+
+%% helper function 
+function [x,y] = getRectPts (maxLength_x, maxLength_y)
+% Uniformly sample from a rectangle
+x = maxLength_x * (2*rand-1);
+y = maxLength_y * (2*rand-1);
 end

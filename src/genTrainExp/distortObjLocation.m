@@ -3,7 +3,9 @@ function [ objCoords ] = distortObjLocation( objCoords, frameParam )
 
 for o = 1 : size(objCoords,1)
     % define the random vector 
-    randVec = genRandVector(frameParam.distortion, frameParam.randVecDistribution);
+    randVec = genRandVector(frameParam.distortion_x, ...
+    frameParam.distortion_y, frameParam.randVecDistribution);
+    
     % translate the original coord by that random vector 
     objCoords(o,:) = objCoords(o,:) + round(randVec);
 end
