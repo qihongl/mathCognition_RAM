@@ -1,23 +1,18 @@
 src/testTensorFlow/
 src/seann999/
-/plots
+src/fixateOneObj/oldScripts/
 /datasets
 /dep
-*.xml
 src/genTrainExpPy/main.py
 src/fixateOneObj/save/
-src/learnTF/MarshOrchid.jpg
 
 *.iml
-
+*.xml
 *.gz
-
 *.SUNet
+*.fig
 
 src/fixateOneObj/tf_mnist_loader.pyc
-
 src/fixateOneObj/tf_mnist_loader.py
-
 src/genTrainExp/testing.m
 
-*.fig
