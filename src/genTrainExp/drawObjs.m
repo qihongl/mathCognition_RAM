@@ -12,7 +12,6 @@ end
 distmat = squareform(pdist(frameCoords));
 
 for o = 1 : obj.num
-    obj.coords(o,:)
     [~,idx] = ismember(obj.coords(o,:), frameCoords,'rows');
     
     if ~obj.varySize

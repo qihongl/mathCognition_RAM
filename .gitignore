@@ -1,6 +1,7 @@
 src/testTensorFlow/
 src/seann999/
 /plots
+/datasets
 /dep
 *.xml
 src/genTrainExpPy/main.py

@@ -13,7 +13,9 @@ prob = 1 ./ (n .^ alpha);
 number = randomChoose(prob);
 end
 
-function [ choice ] = randomChoose(strengths)
+
+% take a unnormalized PDF, randomly output a value (w.r.t. that PDF)
+function choice = randomChoose(strengths)
 v = rand; % a number between 0 and 1
 
 nstr = strengths/sum(strengths); % normalize strengths
@@ -23,6 +25,6 @@ choice = find(cstr>v,1);    % returns the bin v falls in
 if isempty(choice)
     choice = randi(length(strengths));
 end
-% end
+
 end
 
