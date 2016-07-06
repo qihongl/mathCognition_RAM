@@ -6,6 +6,7 @@ showImg = param.showImg;
 saveImg = param.saveImg;
 saveStruct = param.saveStruct; 
 pattern = param.pattern;
+obj.maxNum = param.max_obj_num;
 obj.num = param.obj_num;
 obj.varySize = param.varySize; 
 obj.radius = param.obj_radius;

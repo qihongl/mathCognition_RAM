@@ -18,22 +18,26 @@ param.saveDir = strcat('../../datasets/', imgName);
 allPatterns = {'prototype', 'randomVec', 'allPoss'};
 param.pattern = allPatterns{2};
 
-param.obj_num = 5;          % number of objects
+
+param.max_obj_num = 5; 
+param.obj_num = generateNum(param.max_obj_num);
+% param.obj_num = 5;          % number of objects
 param.obj_radius = 4;       % size of the object 
 param.varySize = 0;         % random radius for object 
 
 param.frame_ver = 28;       % the length of the image
-param.frame_hor = 80;       % the height of the image
+param.frame_hor = 100;       % the height of the image
 param.frame_boundary = param.obj_radius * 3;    % space to the boundary of img
-param.frame_space = param.obj_radius * 3;       % space in between objects
+param.frame_space = param.obj_radius * 4;       % space in between objects
 
-param.distortion_x = param.obj_radius * .9; % magnitude of distortion
+param.distortion_x = param.obj_radius * 1; % magnitude of distortion
 param.distortion_y = param.obj_radius * 1;
 allDistributions = {'elliptical', 'rectangular'};
 param.frame_randVecDistribution = allDistributions{1};
 
 
 %% generate images 
+checkParameters(param)
 for n = 1 : numImages
     param.imgName = sprintf('%s%.3d', imgName, n);
     genTrainExp(param);
