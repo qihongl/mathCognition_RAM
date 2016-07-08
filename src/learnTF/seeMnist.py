@@ -64,7 +64,6 @@ seq = np.arange(0,2,.1) * math.pi
 numPoints = len(seq)
 
 
-
 x = np.sin(seq) * r + 14
 y = np.cos(seq) * r + 14
 

@@ -1,33 +1,36 @@
 import numpy as np
 import tensorflow as tf
-#
-#
-# data = np.reshape(np.arange(18),[2,3,3])
-# normLoc = tf.constant(data, name = 'x')
-#
-# # get the kth glimpose (out of 6)
-#
-# k  = 1
-# imgCoord = tf.Variable(data, name = 'imageCoordinate')
-# imgCoord = tf.cast(tf.round(imgCoord), tf.int32)
-# imgCoord_r = tf.reshape(imgCoord, [2,9])
-#
-#
-# print tf.shape(imgCoord)
-#
-# with tf.Session() as session:
-#     session.run(tf.initialize_all_variables())
-#
-#     print(session.run(imgCoord))
-#     print(session.run(imgCoord_r))
-#
-#
-#
+import sys
+
+batchSize = 10
+nGlimpses = 6
+
+data = []
+
+for i in xrange(nGlimpses):
+    newdata = tf.reshape(np.arange(batchSize * 2), [batchSize, 2])
+    data.append(newdata)
+
+print data
+
+imgCoord = tf.Variable(data, name = 'imageCoordinate')
+imgCoord = tf.concat(1, imgCoord)
+print imgCoord
 
 
-x = np.zeros(10)
+# batchsize, glimpses, x&y
+imgCoord_r = tf.reshape(imgCoord, [batchSize,nGlimpses,2])
+print imgCoord_r
 
-for i in xrange(10):
-    x[i] = 1
+# sys.exit('STOP')
 
-print x
+with tf.Session() as session:
+    session.run(tf.initialize_all_variables())
+
+    # print(session.run(imgCoord))
+
+    print(session.run(imgCoord_r))
+
+
+
+
