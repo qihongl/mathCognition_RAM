@@ -346,18 +346,16 @@ with tf.Graph().as_default():
             duration = time.time() - start_time
 
             ''''''
-            # print sampled_locs.eval()
-            #
             # sess.run(sampled_locs)
             #
             # sampled_locs_x = sess.run(sampled_locs)
             # sampled_locs_y = sess.run(sampled_locs[0,:,1])
             #
             # # print sampled_locs_x
-            # sys.exit('STOP HERE')
+            sys.exit('STOP HERE')
             ''''''
-
             if step % 20 == 0:
+                ''''''
                 if step % 1000 == 0:
                     saver.save(sess, save_dir + save_prefix + str(step) + ".ckpt")
                     if step % 5000 == 0:
