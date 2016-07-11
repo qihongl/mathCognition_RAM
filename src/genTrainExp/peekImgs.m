@@ -1,12 +1,12 @@
 %% make a demo img for the training set 
 clear; clf 
 
-allDataSets = {'multiObj', 'OneObjs'};
-dataSetName = allDataSets{1};           % which dataset you want to see
+allDataSets = {'multiObj', 'oneObj', 'oneObj_big'};
+dataSetName = allDataSets{3};
 format = '.mat';
 
 % find the path 
-path = strcat('../plots/', dataSetName);
+path = strcat('../../datasets/', dataSetName);
 % get the images 
 for i = 1 : 9 
     filename = sprintf(strcat(dataSetName,'%.3d'),i);
