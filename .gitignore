@@ -16,4 +16,12 @@ src/fixateOneObj/save/
 src/fixateOneObj/tf_mnist_loader.pyc
 src/fixateOneObj/tf_mnist_loader.py
 src/genTrainExp/testing.m
+src/torch/.metadata/
+
+*.version
+*.tree
+*.resources
+*.prefs
+*.xmi
+*.ini
 

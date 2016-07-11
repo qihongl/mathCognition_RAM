@@ -10,8 +10,18 @@ end
 pt_y = round(frame.ver / 2);
 % all objects are aligned 
 pt_ys = repmat(pt_y, [obj.num,1]);
-% horizontally, objects are equally spaced 
-pt_xs = frame.boundary + (0 : obj.num - 1)' * frame.space;
+
+% the x coordinate of the objects, left aligned at the origin (0)
+pt_xs_fromOrigin = (0 : obj.num - 1)' * frame.space;
+
+if strcmp(frame.alignment, 'left')
+    % horizontally, objects are equally spaced 
+    pt_xs = frame.boundary + pt_xs_fromOrigin;
+elseif strcmp(frame.alignment, 'center')
+    pt_xs = pt_xs_fromOrigin + (frame.hor/2-median(pt_xs_fromOrigin)); 
+else
+    error('ERROR: unrecognizable alignment pattern.')
+end
 
 % concatenate x and y 
 coords = horzcat(pt_xs, pt_ys);

@@ -10,6 +10,7 @@ obj.maxNum = param.max_obj_num;
 obj.num = param.obj_num;
 obj.varySize = param.varySize; 
 obj.radius = param.obj_radius;
+frame.alignment = param.alignment;
 frame.ver = param.frame_ver;
 frame.hor = param.frame_hor;
 frame.boundary = param.frame_boundary;
