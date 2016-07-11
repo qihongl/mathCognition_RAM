@@ -2,14 +2,17 @@
 clear; clf 
 
 allDataSets = {'multiObj', 'oneObj', 'oneObj_big'};
-dataSetName = allDataSets{3};
+dataSetName = allDataSets{2};
 format = '.mat';
 
 % find the path 
 path = strcat('../../datasets/', dataSetName);
 % get the images 
-for i = 1 : 9 
-    filename = sprintf(strcat(dataSetName,'%.3d'),i);
+% randsample(500-9,1)
+numImg = 9;
+startingIdx = randsample(500-numImg,1)
+for i = 1: numImg
+    filename = sprintf(strcat(dataSetName,'%.3d'),startingIdx+i);
     filename = strcat(filename, format);
     img = load(fullfile(path,filename));
     % show the image 
