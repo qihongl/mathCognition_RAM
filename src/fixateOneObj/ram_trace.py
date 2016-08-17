@@ -286,6 +286,12 @@ with tf.Graph().as_default():
 
             # get the next batch of examples
             nextX, nextY = dataset.train.next_batch(batch_size)
+            print nextY
+            print np.shape(nextY)
+            print type(nextY)
+            print type(nextY[0])
+
+            sys.exit('STOP')
             feed_dict = {inputs_placeholder: nextX, labels_placeholder: nextY, onehot_labels_placeholder: dense_to_one_hot(nextY)}
 
             fetches = [train_op, cost, reward, predicted_labels, correct_labels, cur_sampled_locs, glimpse_images]
