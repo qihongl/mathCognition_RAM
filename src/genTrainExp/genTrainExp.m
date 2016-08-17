@@ -69,7 +69,11 @@ if saveStruct
     imgFileFormat = '.mat';
     imgFileName = strcat(param.imgName,imgFileFormat);
     fullImgFileName = fullfile(param.saveDir,imgFileName);
-    save(fullImgFileName, 'img');
+    vectorImg = reshape(img, [size(img,1) * size(img,2), 1]);
+    if param.supervised 
+        vectorImg = vertcat(vectorImg, param.obj_num, reshape(obj.coords, [param.obj_num * 2,1]));
+    end
+    save(fullImgFileName, 'vectorImg');
 end
 
 end

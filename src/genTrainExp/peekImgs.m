@@ -7,6 +7,7 @@ format = '.mat';
 
 % find the path 
 path = strcat('../../datasets/', dataSetName);
+
 % get the images 
 % randsample(500-9,1)
 numImg = 9;

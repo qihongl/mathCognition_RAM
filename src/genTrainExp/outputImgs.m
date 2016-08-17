@@ -5,10 +5,11 @@ clear variables; clf;
 
 % high level parameters
 numImages = 500;              % the number of output images 
-param.showImg = 1;          % display a sample image 
+
+param.showImg = 0;          % display a sample image 
 param.saveImg = 0;          % same the image 
 param.saveStruct = 1;       % save the matrix representation 
-imgName = 'multiObj';
+imgName = 'multiObj_balanced';
 % imgName = 'oneObj';
 % imgName = 'oneObj_big';
 param.saveDir = strcat('../../datasets/', imgName);
@@ -23,28 +24,38 @@ param.pattern = allPatterns{2};
 alignmentPatterns = {'left', 'center'};
 param.alignment = alignmentPatterns{1};
 
-param.max_obj_num = 5; 
-param.obj_radius = 4;       % size of the object 
+param.max_obj_num = 7; 
+param.obj_radius = 3;       % size of the object 
 param.varySize = 0;         % random radius for object 
 
-param.frame_ver = 30;       % the length of the image
+param.frame_ver = 90;       % the length of the image
 param.frame_hor = 90;       % the height of the image
 param.frame_boundary = param.obj_radius * 3;    % space to the boundary of img
 param.frame_space = param.obj_radius * 4;       % space in between objects
 
 param.distortion_x = param.obj_radius * 1; % magnitude of distortion
 param.distortion_y = param.obj_radius * 1;
-allDistributions = {'elliptical', 'rectangular'};
-param.frame_randVecDistribution = allDistributions{2};
+noise_allDistributions = {'elliptical', 'rectangular'};
+param.frame_randVecDistribution = noise_allDistributions{2};
 
+param.supervised = true; 
+
+numObj_allDistributions = {'uniform', 'realistic'};
+param.numObj_sampling = 'uniform';
 
 %% generate images 
 checkParameters(param)
 for n = 1 : numImages
     % generate the number of objects randomly 
-    param.obj_num = generateNum(param.max_obj_num);
+    if strcmp(param.numObj_sampling, 'realistic')
+        param.obj_num = generateNum(param.max_obj_num);
+    elseif strcmp(param.numObj_sampling, 'uniform')
+        param.obj_num = randsample(param.max_obj_num,1,true);
+    end
     % param.obj_num = 5;          % number of objects
+    
     param.imgName = sprintf('%s%.3d', imgName, n);
+    % generate the image!
     genTrainExp(param);
 end
 
