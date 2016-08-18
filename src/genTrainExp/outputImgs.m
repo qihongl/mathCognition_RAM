@@ -4,7 +4,7 @@
 clear variables; clf; 
 
 % high level parameters
-numImages = 500;              % the number of output images 
+numImages = 1000;              % the number of output images 
 
 param.showImg = 0;          % display a sample image 
 param.saveImg = 0;          % same the image 

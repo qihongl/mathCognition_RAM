@@ -71,7 +71,9 @@ if saveStruct
     fullImgFileName = fullfile(param.saveDir,imgFileName);
     vectorImg = reshape(img, [size(img,1) * size(img,2), 1]);
     if param.supervised 
-        vectorImg = vertcat(vectorImg, param.obj_num, reshape(obj.coords, [param.obj_num * 2,1]));
+        paddedCoords = zeros(param.max_obj_num,2);
+        paddedCoords(1:param.obj_num,:) = obj.coords;
+        vectorImg = vertcat(vectorImg, param.obj_num, reshape(paddedCoords, [param.max_obj_num * 2,1]));
     end
     save(fullImgFileName, 'vectorImg');
 end
