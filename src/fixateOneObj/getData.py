@@ -3,7 +3,7 @@ import os
 import numpy as np
 import sys
 
-def getData(batchSize, dataSetName,img_size1,img_size2, hasLabel):
+def getData(batchSize, dataSetName,img_size1,img_size2, hasLabel, maxNumObj):
 
     # parameters
     datapath = '/Users/Qihong/Dropbox/github/mathCognition_RAM/datasets/'
@@ -34,7 +34,12 @@ def getData(batchSize, dataSetName,img_size1,img_size2, hasLabel):
         if hasLabel:
             labels[i] = img[img_size1*img_size2]
         # get the coordinates
-        curCoords = np.reshape(img[img_size1*img_size2+1:],[labels[i],2])
+        curCoords = np.reshape(img[img_size1*img_size2+1:],[maxNumObj,2], 'F')
         coordinates.append(curCoords)
+
+        # testing
+        # if i == 0:
+        #     print img[img_size1 * img_size2 + 1:], [maxNumObj, 2]
+
 
     return imgBatch, labels.astype(int), coordinates, egIdx
