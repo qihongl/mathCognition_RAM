@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import random
-import numpy.matlib
 import sys
 from getData import getData
 
@@ -24,8 +23,8 @@ start_step = 0
 load_path = save_dir + save_prefix + str(start_step) + ".ckpt"
 # to enable visualization, set draw to True
 eval_only = False
-animate = 1
-draw = 1
+animate = 0
+draw = 0
 
 # conditions
 # translateMnist = 0
@@ -341,23 +340,22 @@ def calc_reward(outputs):
 
 
 def evaluate():
-    # data = dataset.test
-    # batches_in_epoch = len(data._images) // batch_size
+    batches_in_epoch = 50
+
     accuracy = 0
-    #
-    # for i in xrange(batches_in_epoch):
-    #     nextX, nextY = dataset.test.next_batch(batch_size)
-    #
-    #     if translateMnist:
-    #         nextX, _ = convertTranslated(nextX, MNIST_SIZE, img_size)
-    #
-    #     feed_dict = {inputs_placeholder: nextX, labels_placeholder: nextY,
-    #                  onehot_labels_placeholder: dense_to_one_hot(nextY)}
-    #     r = sess.run(reward, feed_dict=feed_dict)
-    #     accuracy += r
-    #
-    # accuracy /= batches_in_epoch
-    # print("ACCURACY: " + str(accuracy))
+    for i in xrange(batches_in_epoch):
+        nextX, nextY, objCoords, _ = getData(1, datasetName, img_size, img_size, hasLabel, maxNumObj)
+
+        feed_dict = {inputs_placeholder: nextX,
+                     labels_placeholder: nextY,
+                     onehot_labels_placeholder: dense_to_one_hot(nextY),
+                     objCoords_placeholder: objCoords}
+
+        r = sess.run(reward, feed_dict=feed_dict)
+        accuracy += r
+
+    accuracy /= batches_in_epoch
+    print("ACCURACY: " + str(accuracy))
 
 
 
