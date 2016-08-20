@@ -35,7 +35,7 @@ eyeCentered = 0
 
 img_size = 28
 depth = 3  # number of zooms
-sensorBandwidth = 16
+sensorBandwidth = 8
 minRadius =  sensorBandwidth/2 # zooms -> minRadius * 2**<depth_level>
 
 initLr = 3e-3
@@ -60,8 +60,8 @@ cell_out_size = cell_size   #
 
 # paramters about the training examples
 n_classes = 10              # card(Y)
-maxNumObj = 7
-objSize = 2
+maxNumObj = 1
+objSize = 4
 
 # training parameters
 max_iters = 1000000
@@ -79,9 +79,28 @@ def weight_variable(shape, myname, train):
     initial = tf.random_uniform(shape, minval=-0.1, maxval = 0.1)
     return tf.Variable(initial, name=myname, trainable=train)
 
+
+
+def toMnistCoordinates(coordinate_tanhed):
+    '''
+    Transform coordinate in [-1,1] to mnist
+    :param coordinate_tanhed: vector in [-1,1] x [-1,1]
+    :return: vector in the corresponding mnist coordinate
+    '''
+    return np.round(((coordinate_tanhed + 1) / 2.0) * img_size)
+
+def toMnistCoordinates_tf(coordinate_tanhed):
+    '''
+    Transform coordinate in [-1,1] to mnist
+    :param coordinate_tanhed: vector in [-1,1] x [-1,1]
+    :return: vector in the corresponding mnist coordinate
+    '''
+    return tf.round(((coordinate_tanhed + 1) / 2.0) * img_size)
+
+
 # get local glimpses
 def glimpseSensor(img, normLoc):
-    loc = tf.round(((normLoc + 1) / 2.0) * img_size)  # normLoc coordinates are between -1 and 1
+    loc = toMnistCoordinates_tf(normLoc)  # normLoc coordinates are between -1 and 1
     loc = tf.cast(loc, tf.int32)
 
     img = tf.reshape(img, (batch_size, img_size, img_size, channels))
@@ -237,7 +256,7 @@ def l2distance(x,y):
 def getReward_touch(objCoordinates, sampled_locs, numObjsPresented, objSize, batch_size):
     # preallocate for the reward
     corner = tf.zeros((2,), dtype=tf.float32, name=None)
-    reward = np.zeros(batch_size)
+    # reward = np.zeros(batch_size)
     # loop over all examples in the batch
     # for b in xrange(batch_size):
     b = 0
@@ -245,22 +264,23 @@ def getReward_touch(objCoordinates, sampled_locs, numObjsPresented, objSize, bat
     sampled_locs_b = sampled_locs[b,:,:]
     numObjsPres_b = numObjsPresented[b]
 
-    nTimesObjTouched = 0
     nObjTouched = 0
     # for the ith-example in the batch, loop over all object
     for j in xrange(maxNumObj):
         objCoords_cur = objCoords_b[j,:]
 
-        temp = 0
+        nTimesObjTouched = 0
         # for the j-th objects, loop over all glimpses to determine if it is fixated
         for i in xrange(nGlimpses):
-            l2Diff_obj = l2distance(objCoords_cur, sampled_locs_b[i,:])
-            l2Diff_corner = l2distance(corner, sampled_locs_b[i, :])
+            sampledCoord_cur = toMnistCoordinates_tf(sampled_locs_b[i,:])
+            l2Diff_obj = l2distance(objCoords_cur, sampledCoord_cur)
+            l2Diff_corner = l2distance(corner, sampledCoord_cur)
             isTouchingObj = tf.less_equal(l2Diff_obj, objSize)
             isNotTouchingCorner = tf.greater_equal(l2Diff_corner, objSize)
-            temp = temp + tf.cast(tf.logical_and(isTouchingObj, isNotTouchingCorner), tf.int32)
+            # true if the current glimpse is fixated on an object
+            tempTouchFlag = tf.cast(tf.logical_and(isTouchingObj, isNotTouchingCorner), tf.int32)
 
-            nTimesObjTouched = nTimesObjTouched + tf.cast(tf.greater_equal(temp,1), tf.int32)
+            nTimesObjTouched = nTimesObjTouched + tempTouchFlag
 
         # for the b-th example in the batch, if all objects are touched, then reward = 1, else reward = 0
         nObjTouched = nObjTouched + tf.cast(tf.greater_equal(nTimesObjTouched,1), tf.int32)
@@ -339,14 +359,6 @@ def evaluate():
     # accuracy /= batches_in_epoch
     # print("ACCURACY: " + str(accuracy))
 
-
-def toMnistCoordinates(coordinate_tanh):
-    '''
-    Transform coordinate in [-1,1] to mnist
-    :param coordinate_tanh: vector in [-1,1] x [-1,1]
-    :return: vector in the corresponding mnist coordinate
-    '''
-    return np.round(((coordinate_tanh + 1) / 2.0) * img_size)
 
 
 def variable_summaries(var, name):
@@ -481,12 +493,12 @@ with tf.Graph().as_default():
                          onehot_labels_placeholder: dense_to_one_hot(nextY),
                          objCoords_placeholder: objCoords}
 
-            fetches = [train_op, cost, reward, predicted_labels, correct_labels, glimpse_images, b, avg_b, rminusb, sampled_locs, lr]
+            fetches = [train_op, cost, reward, predicted_labels, correct_labels, glimpse_images, b, avg_b, sampled_locs, lr]
             # feed them to the model
             results = sess.run(fetches, feed_dict=feed_dict)
 
             _, cost_fetched, reward_fetched, prediction_labels_fetched, correct_labels_fetched, f_glimpse_images_fetched,\
-            b_fetched, avg_b_fetched, rminusb_fetched, sampled_locs_fetched, lr_fetched = results
+            b_fetched, avg_b_fetched, sampled_locs_fetched, lr_fetched = results
 
 
             duration = time.time() - start_time
@@ -529,8 +541,8 @@ with tf.Graph().as_default():
 
                         # display the glimpses
                         for y in xrange(nGlimpses):
-                            txt.set_text('FINAL PREDICTION: %i\nTRUTH: %i\nSTEP: %i/%i'
-                                         % (prediction_labels_fetched[0], correct_labels_fetched[0], (y + 1), nGlimpses))
+
+                            txt.set_text('REWARD: %.2f\nSTEP: %i/%i' % (reward_fetched, (y + 1), nGlimpses))
 
                             for x in xrange(depth):
                                 plt.subplot(depth, nCols, 1 + nCols * x)
@@ -561,7 +573,7 @@ with tf.Graph().as_default():
                 ################################
 
                 print('Step %d: cost = %.5f reward = %.5f (%.3f sec) b = %.5f R-b = %.5f, LR = %.5f'
-                      % (step, cost_fetched, reward_fetched, duration, avg_b_fetched, rminusb_fetched, lr_fetched))
+                      % (step, cost_fetched, reward_fetched, duration, avg_b_fetched, reward_fetched - avg_b_fetched, lr_fetched))
 
                 summary_str = sess.run(summary_op, feed_dict=feed_dict)
                 summary_writer.add_summary(summary_str, step)
