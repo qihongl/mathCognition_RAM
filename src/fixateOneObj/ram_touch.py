@@ -12,7 +12,13 @@ try:
 except NameError:
     xrange = range
 
+
 datasetName = 'oneObj_centered'
+img_size = 28
+maxNumObj = 1
+objSize = 4
+nGlimpses = 4               # number of glimpses
+
 hasLabel = True
 
 # dataset = tf_mnist_loader.read_data_sets("mnist_data")
@@ -23,23 +29,21 @@ start_step = 0
 load_path = save_dir + save_prefix + str(start_step) + ".ckpt"
 # to enable visualization, set draw to True
 eval_only = False
-animate = 0
-draw = 0
+animate = 1
+draw = 1
 
 # conditions
 # translateMnist = 0
 eyeCentered = 0
 
-# about translation
 
-img_size = 28
 depth = 3  # number of zooms
 sensorBandwidth = 8
 minRadius =  sensorBandwidth/2 # zooms -> minRadius * 2**<depth_level>
 
 initLr = 3e-3
 lrDecayRate = .995
-lrDecayFreq = 200
+lrDecayFreq = 300
 momentumValue = .9
 batch_size = 1
 
@@ -47,8 +51,7 @@ batch_size = 1
 # model parameters
 channels = 1                # mnist are grayscale images
 totalSensorBandwidth = depth * channels * (sensorBandwidth **2)
-nGlimpses = 6               # number of glimpses
-loc_sd = 0.11               # std when setting the location
+loc_sd = 0.1               # std when setting the location
 
 # network units
 hg_size = 128               #
@@ -59,8 +62,7 @@ cell_out_size = cell_size   #
 
 # paramters about the training examples
 n_classes = 10              # card(Y)
-maxNumObj = 1
-objSize = 4
+
 
 # training parameters
 max_iters = 1000000
@@ -80,7 +82,7 @@ def weight_variable(shape, myname, train):
 
 
 
-def toMnistCoordinates(coordinate_tanhed):
+def toMnistCoordinates(coordinate_tanhed, img_size):
     '''
     Transform coordinate in [-1,1] to mnist
     :param coordinate_tanhed: vector in [-1,1] x [-1,1]
@@ -88,7 +90,7 @@ def toMnistCoordinates(coordinate_tanhed):
     '''
     return np.round(((coordinate_tanhed + 1) / 2.0) * img_size)
 
-def toMnistCoordinates_tf(coordinate_tanhed):
+def toMnistCoordinates_tf(coordinate_tanhed, img_size):
     '''
     Transform coordinate in [-1,1] to mnist
     :param coordinate_tanhed: vector in [-1,1] x [-1,1]
@@ -99,7 +101,7 @@ def toMnistCoordinates_tf(coordinate_tanhed):
 
 # get local glimpses
 def glimpseSensor(img, normLoc):
-    loc = toMnistCoordinates_tf(normLoc)  # normLoc coordinates are between -1 and 1
+    loc = toMnistCoordinates_tf(normLoc, img_size)  # normLoc coordinates are between -1 and 1
     loc = tf.cast(loc, tf.int32)
 
     img = tf.reshape(img, (batch_size, img_size, img_size, channels))
@@ -189,10 +191,10 @@ def affineTransform(x,output_dim):
 def model():
     # initialize the location under unif[-1,1], for all example in the batch
     initial_loc = tf.random_uniform((batch_size, 2), minval=-1, maxval=1)
-    # initial_loc = tf.constant([-1, .5], shape = (batch_size,2))
+    # initial_loc = tf.constant([-1, .01], shape = (batch_size,2))
 
     mean_locs.append(initial_loc)
-    initial_loc = tf.tanh(initial_loc + tf.random_normal(initial_loc.get_shape(), 0, loc_sd))
+    # initial_loc = tf.tanh(initial_loc + tf.random_normal(initial_loc.get_shape(), 0, loc_sd))
     sampled_locs.append(initial_loc)
 
     # get the current visual input using the glimpse network
@@ -271,7 +273,7 @@ def getReward_touch(objCoordinates, sampled_locs, numObjsPresented, objSize, bat
         nTimesObjTouched = 0
         # for the j-th objects, loop over all glimpses to determine if it is fixated
         for i in xrange(nGlimpses):
-            sampledCoord_cur = toMnistCoordinates_tf(sampled_locs_b[i,:])
+            sampledCoord_cur = toMnistCoordinates_tf(sampled_locs_b[i,:], img_size)
             l2Diff_obj = l2distance(objCoords_cur, sampledCoord_cur)
             l2Diff_corner = l2distance(corner, sampledCoord_cur)
             isTouchingObj = tf.less_equal(l2Diff_obj, objSize)
@@ -529,7 +531,7 @@ with tf.Graph().as_default():
                         whole.autoscale()
 
                         # transform the coordinate to mnist map
-                        sampled_locs_mnist_fetched = toMnistCoordinates(sampled_locs_fetched)
+                        sampled_locs_mnist_fetched = toMnistCoordinates(sampled_locs_fetched, img_size)
                         # visualize the trace of successive nGlimpses (note that x and y coordinates are "flipped")
                         plt.plot(sampled_locs_mnist_fetched[0, :, 0], sampled_locs_mnist_fetched[0, :, 1], '-o',
                                  color='lawngreen')
