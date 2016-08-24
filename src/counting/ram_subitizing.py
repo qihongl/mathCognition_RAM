@@ -13,7 +13,7 @@ try:
 except NameError:
     xrange = range
 
-datasetName = 'multiObj_balanced'
+datasetName = 'fiveObj_centered'
 hasLabel = True
 
 # dataset = tf_mnist_loader.read_data_sets("mnist_data")
@@ -24,8 +24,11 @@ start_step = 0
 load_path = save_dir + save_prefix + str(start_step) + ".ckpt"
 # to enable visualization, set draw to True
 eval_only = False
-animate = 1
-draw = 1
+animate = 0
+draw = 0
+
+
+maxNumObj = 5
 
 # conditions
 # translateMnist = 0
@@ -33,9 +36,9 @@ eyeCentered = 0
 
 # about translation
 
-img_size = 90
+img_size = 80
 depth = 3  # number of zooms
-sensorBandwidth = 16
+sensorBandwidth = 8
 minRadius =  sensorBandwidth/2 # zooms -> minRadius * 2**<depth_level>
 
 initLr = 3e-3
@@ -49,7 +52,7 @@ batch_size = 20
 channels = 1                # mnist are grayscale images
 totalSensorBandwidth = depth * channels * (sensorBandwidth **2)
 nGlimpses = 6               # number of glimpses
-loc_sd = 0.11               # std when setting the location
+loc_sd = 0.1               # std when setting the location
 
 # network units
 hg_size = 128               #
@@ -139,7 +142,7 @@ def get_glimpse(loc):
 
 def get_next_input(output):
     # the next location is computed by the location network
-    baseline = tf.sigmoid(tf.matmul(output,Wb_h_b) + Bb_h_b)
+    baseline = tf.matmul(output,Wb_h_b) + Bb_h_b
     baselines.append(baseline)
     # compute the next location, then impose noise
     if eyeCentered:
@@ -176,7 +179,7 @@ def affineTransform(x,output_dim):
 def model():
     # initialize the location under unif[-1,1], for all example in the batch
     initial_loc = tf.random_uniform((batch_size, 2), minval=-1, maxval=1)
-    # initial_loc = tf.constant([-1, .5], shape = (batch_size,2))
+    # initial_loc = tf.constant([-1, .01], shape = (batch_size,2))
 
     mean_locs.append(initial_loc)
     initial_loc = tf.tanh(initial_loc + tf.random_normal(initial_loc.get_shape(), 0, loc_sd))
@@ -231,12 +234,37 @@ def gaussian_pdf(mean, sample):
     a = -tf.square(sample - mean) / (2.0 * tf.square(loc_sd))
     return Z * tf.exp(a)
 
+def calc_R_glimpse(output, correct_y):
+    p_y = tf.nn.softmax(tf.matmul(output, Wa_h_a) + Ba_h_a)
+    max_p_y = tf.arg_max(p_y, 1)
+
+    # reward for all examples in the batch
+    R = tf.cast(tf.equal(max_p_y, correct_y), tf.float32)
+    reward = tf.reduce_mean(R)  # mean reward
+    R = tf.reshape(R, (batch_size, 1))
+    R = tf.tile(R, [1, (nGlimpses) * 2])
+    return R, reward, tf.log(p_y + SMALL_NUM) * onehot_labels_placeholder, max_p_y
 
 def calc_reward(outputs):
+    '''
+    Look at all outputs
+    :param outputs:
+    :return:
+    '''
 
-    # consider the action at the last time step
-    outputs = outputs[-1] # look at ONLY THE END of the sequence
-    outputs = tf.reshape(outputs, (batch_size, cell_out_size))
+    correct_y = tf.cast(labels_placeholder, tf.int64)
+    for o in xrange(len(outputs)):
+        output = outputs[o] # look at ONLY THE END of the sequence
+        output = tf.reshape(output, (batch_size, cell_out_size))
+        R, reward, class_cost, max_p_y = calc_R_glimpse(output, correct_y)
+        if o == 0:
+            Rs = R
+            rewards = reward
+            class_costs = class_cost
+        else:
+            Rs += R
+            rewards += reward
+            class_costs += class_cost
 
     # get the baseline
     b = tf.pack(baselines)
@@ -244,25 +272,13 @@ def calc_reward(outputs):
     b = tf.reshape(b, (batch_size, (nGlimpses) * 2))
     no_grad_b = tf.stop_gradient(b)
 
-    # get the action(classification)
-    p_y = tf.nn.softmax(tf.matmul(outputs, Wa_h_a) + Ba_h_a)
-    max_p_y = tf.arg_max(p_y, 1)
-    correct_y = tf.cast(labels_placeholder, tf.int64)
-
-    # reward for all examples in the batch
-    R = tf.cast(tf.equal(max_p_y, correct_y), tf.float32)
-    reward = tf.reduce_mean(R) # mean reward
-    R = tf.reshape(R, (batch_size, 1))
-    R = tf.tile(R, [1, (nGlimpses)*2])
-
     # get the location
     p_loc = gaussian_pdf(mean_locs, sampled_locs)
     p_loc = tf.tanh(p_loc)
-    p_loc_orig = p_loc
     p_loc = tf.reshape(p_loc, (batch_size, (nGlimpses) * 2))
 
     # define the cost function
-    J = tf.concat(1, [tf.log(p_y + SMALL_NUM) * (onehot_labels_placeholder), tf.log(p_loc + SMALL_NUM) * (R - no_grad_b)])
+    J = tf.concat(1, [class_costs, tf.log(p_loc + SMALL_NUM) * (Rs - no_grad_b)])
     J = tf.reduce_sum(J, 1)
     J = J - tf.reduce_sum(tf.square(R - b), 1)
     J = tf.reduce_mean(J, 0)
@@ -272,27 +288,65 @@ def calc_reward(outputs):
     optimizer = tf.train.MomentumOptimizer(lr, momentumValue)
     train_op = optimizer.minimize(cost, global_step)
 
-    return cost, reward, max_p_y, correct_y, train_op, b, tf.reduce_mean(b), tf.reduce_mean(R - b), p_loc_orig, p_loc, lr
+    return cost, reward, max_p_y, correct_y, train_op, b, tf.reduce_mean(b), tf.reduce_mean(Rs - b), p_loc, lr
+# def calc_reward(outputs):
+#
+#     # consider the action at the last time step
+#     outputs = outputs[-1] # look at ONLY THE END of the sequence
+#     outputs = tf.reshape(outputs, (batch_size, cell_out_size))
+#
+#     # get the baseline
+#     b = tf.pack(baselines)
+#     b = tf.concat(2, [b, b])
+#     b = tf.reshape(b, (batch_size, (nGlimpses) * 2))
+#     no_grad_b = tf.stop_gradient(b)
+#
+#     # get the action(classification)
+#     p_y = tf.nn.softmax(tf.matmul(outputs, Wa_h_a) + Ba_h_a)
+#     max_p_y = tf.arg_max(p_y, 1)
+#     correct_y = tf.cast(labels_placeholder, tf.int64)
+#
+#     # reward for all examples in the batch
+#     R = tf.cast(tf.equal(max_p_y, correct_y), tf.float32)
+#     reward = tf.reduce_mean(R) # mean reward
+#     R = tf.reshape(R, (batch_size, 1))
+#     R = tf.tile(R, [1, (nGlimpses)*2])
+#
+#     # get the location
+#     p_loc = gaussian_pdf(mean_locs, sampled_locs)
+#     p_loc = tf.tanh(p_loc)
+#     p_loc_orig = p_loc
+#     p_loc = tf.reshape(p_loc, (batch_size, (nGlimpses) * 2))
+#
+#     # define the cost function
+#     J = tf.concat(1, [tf.log(p_y + SMALL_NUM) * (onehot_labels_placeholder), tf.log(p_loc + SMALL_NUM) * (R - no_grad_b)])
+#     J = tf.reduce_sum(J, 1)
+#     J = J - tf.reduce_sum(tf.square(R - b), 1)
+#     J = tf.reduce_mean(J, 0)
+#     cost = -J
+#
+#     # define the optimizer
+#     optimizer = tf.train.MomentumOptimizer(lr, momentumValue)
+#     train_op = optimizer.minimize(cost, global_step)
+#
+#     return cost, reward, max_p_y, correct_y, train_op, b, tf.reduce_mean(b), tf.reduce_mean(R - b), p_loc_orig, p_loc, lr
 
 
 def evaluate():
-    # data = dataset.test
-    # batches_in_epoch = len(data._images) // batch_size
+
+    batches_in_epoch = batch_size * 10
     accuracy = 0
-    #
-    # for i in xrange(batches_in_epoch):
-    #     nextX, nextY = dataset.test.next_batch(batch_size)
-    #
-    #     if translateMnist:
-    #         nextX, _ = convertTranslated(nextX, MNIST_SIZE, img_size)
-    #
-    #     feed_dict = {inputs_placeholder: nextX, labels_placeholder: nextY,
-    #                  onehot_labels_placeholder: dense_to_one_hot(nextY)}
-    #     r = sess.run(reward, feed_dict=feed_dict)
-    #     accuracy += r
-    #
-    # accuracy /= batches_in_epoch
-    # print("ACCURACY: " + str(accuracy))
+
+    for i in xrange(batches_in_epoch):
+        nextX, nextY, objCoords, _ = getData(batch_size, datasetName, img_size, img_size, hasLabel, maxNumObj)
+
+        feed_dict = {inputs_placeholder: nextX, labels_placeholder: nextY,
+                     onehot_labels_placeholder: dense_to_one_hot(nextY)}
+        r = sess.run(reward, feed_dict=feed_dict)
+        accuracy += r
+
+    accuracy /= batches_in_epoch
+    print("ACCURACY: " + str(accuracy))
 
 
 def convertTranslated(images, initImgSize, finalImgSize):
@@ -364,9 +418,6 @@ with tf.Graph().as_default():
     Wg_hl_gf1 = weight_variable((hl_size, g_size), "glimpseNet_wts_hiddenLocation_glimpseFeature1", True)
     Bg_hlhg_gf1 = weight_variable((1,g_size), "glimpseNet_bias_hGlimpse_hLocs_glimpseFeature1", True)
 
-    # Wg_gf1_gf2 = weight_variable((g_size, g_size), "glimpseNet_wts_glimpseFeature1_glimpsedFeature2", True)
-    # Bg_gf1_gf2 = weight_variable((1,g_size), "glimpseNet_bias_hidden_glimpsedFeature2", True)
-
     Wc_g_h = weight_variable((cell_size, g_size), "coreNet_wts_glimpse_hidden", True)
     Bc_g_h = weight_variable((1,g_size), "coreNet_bias_glimpse_hidden", True)
 
@@ -392,7 +443,7 @@ with tf.Graph().as_default():
     glimpse_images = tf.concat(0, glimpse_images)
 
     # compute the reward
-    cost, reward, predicted_labels, correct_labels, train_op, b, avg_b, rminusb, p_loc_orig, p_loc, lr = calc_reward(outputs)
+    cost, reward, predicted_labels, correct_labels, train_op, b, avg_b, rminusb, p_loc, lr = calc_reward(outputs)
 
     # tensorboard visualization for the parameters
     variable_summaries(Wg_l_h, "glimpseNet_wts_location_hidden")
@@ -402,8 +453,6 @@ with tf.Graph().as_default():
     variable_summaries(Wg_hg_gf1, "glimpseNet_wts_hiddenGlimpse_glimpseFeature1")
     variable_summaries(Wg_hl_gf1, "glimpseNet_wts_hiddenLocation_glimpseFeature1")
     variable_summaries(Bg_hlhg_gf1, "glimpseNet_bias_hGlimpse_hLocs_glimpseFeature1")
-    # variable_summaries(Wg_gf1_gf2, "glimpseNet_wts_glimpseFeature1_glimpsedFeature2")
-    # variable_summaries(Bg_gf1_gf2, "glimpseNet_bias_glimpseFeature1_glimpsedFeature2")
 
     variable_summaries(Wc_g_h, "coreNet_wts_glimpse_hidden")
     variable_summaries(Bc_g_h, "coreNet_bias_glimpse_hidden")
@@ -451,34 +500,19 @@ with tf.Graph().as_default():
             start_time = time.time()
 
             # get the next batch of examples
-            # nextX, nextY = dataset.train.next_batch(batch_size)
-            nextX, nextY, objCoords, _ = getData(batch_size, datasetName, img_size, img_size, hasLabel)
-            # print nextX
-            # print nextY
-            # sys.exit('STOP')
-            # if translateMnist:
-            #     nextX, nextX_coord = convertTranslated(nextX, MNIST_SIZE, img_size)
+            nextX, nextY, objCoords, _ = getData(batch_size, datasetName, img_size, img_size, hasLabel, maxNumObj)
 
             feed_dict = {inputs_placeholder: nextX, labels_placeholder: nextY, \
                          onehot_labels_placeholder: dense_to_one_hot(nextY), b_placeholder: b_fetched}
             fetches = [train_op, cost, reward, predicted_labels, correct_labels, glimpse_images, b, avg_b, rminusb, \
-                       p_loc_orig, p_loc, mean_locs, sampled_locs, outputs[-1], lr]
+                       p_loc, mean_locs, sampled_locs, outputs[-1], lr]
             # feed them to the model
             results = sess.run(fetches, feed_dict=feed_dict)
 
             _, cost_fetched, reward_fetched, prediction_labels_fetched, correct_labels_fetched, f_glimpse_images_fetched, \
-            b_fetched, avg_b_fetched, rminusb_fetched, p_loc_orig_fetched, p_loc_fetched, mean_locs_fetched, sampled_locs_fetched, \
+            b_fetched, avg_b_fetched, rminusb_fetched, p_loc_fetched, mean_locs_fetched, sampled_locs_fetched, \
             output_fetched, lr_fetched = results
 
-
-            # compute the distance (glimpsedLocation, targetCenter) over glimpses (for all images in the batch)
-            # distance = np.zeros(nGlimpses, batch_size)
-            # for k in range(batch_size):
-            #     img_coord_cur = np.reshape(nextX_coord[k,:], [1,2])
-            #     sampled_locs_cur = np.reshape(sampled_locs_fetched[k,:,:], [nGlimpses,2])
-            #     distance[:,k] = np.sqrt(np.sum(np.square(np.subtract(sampled_locs_cur, img_coord_cur)), axis=0))
-
-            # sys.exit('STOP')
 
 
             duration = time.time() - start_time
