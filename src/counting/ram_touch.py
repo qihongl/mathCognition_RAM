@@ -51,7 +51,7 @@ batch_size = 1
 # model parameters
 channels = 1                # mnist are grayscale images
 totalSensorBandwidth = depth * channels * (sensorBandwidth **2)
-loc_sd = 0.1               # std when setting the location
+loc_sd = 0.05               # std when setting the location
 
 # network units
 hg_size = 128               #
@@ -154,7 +154,7 @@ def get_glimpse(loc):
 
 def get_next_input(output):
     # the next location is computed by the location network
-    baseline = tf.sigmoid(tf.matmul(output,Wb_h_b) + Bb_h_b)
+    baseline = tf.matmul(output,Wb_h_b) + Bb_h_b
     baselines.append(baseline)
     # compute the next location, then impose noise
     if eyeCentered:
@@ -246,72 +246,116 @@ def gaussian_pdf(mean, sample):
     a = -tf.square(sample - mean) / (2.0 * tf.square(loc_sd))
     return Z * tf.exp(a)
 
-def f_true():
-    return True
-def f_false():
-    return f_false
 
-def l2distance(x,y):
-    return tf.sqrt(tf.reduce_sum(tf.square(tf.sub(x, y))))
+def l2distance_tf(x,y):
+    return tf.sqrt(tf.reduce_sum(tf.square(tf.sub(x, y)),1))
+
+# def getReward_touch(objCoordinates, sampled_locs, numObjsPresented, objSize, batch_size):
+#     '''
+#     provide reward according to the min distance of each object w.r.t to glimpses
+#     :param objCoordinates:
+#     :param sampled_locs:
+#     :param numObjsPresented:
+#     :param objSize:
+#     :param batch_size:
+#     :return:
+#     '''
+#     # preallocate for the reward
+#     corner = tf.zeros((2,), dtype=tf.float32, name=None)
+#     # reward = np.zeros(batch_size)
+#     # loop over all examples in the batch
+#     # for b in xrange(batch_size):
+#     b = 0
+#
+#     objCoords_b = objCoordinates[b,:,:]
+#     sampled_locs_b = sampled_locs[b,:,:]
+#     numObjsPres_b = numObjsPresented[b]
+#
+#     nObjTouched = 0
+#     # for the bth-example in the batch, loop over all object
+#     for j in xrange(maxNumObj):
+#         objCoords_cur = objCoords_b[j,:]
+#
+#         # check glimpses to determine if it is fixated
+#         sampledCoord = toMnistCoordinates_tf(sampled_locs_b, img_size)
+#         l2Diff_obj = l2distance_tf(sampledCoord, objCoords_cur)
+#         # minDist_obj = tf.reduce_min(l2Diff_obj)
+#         l2Diff_corner = l2distance_tf(sampledCoord, corner)
+#         isTouchingObj = tf.less_equal(l2Diff_obj, objSize)
+#         isNotTouchingCorner = tf.greater_equal(l2Diff_corner, objSize)
+#
+#         nTimesObjTouched = tf.cast(tf.logical_and(isTouchingObj, isNotTouchingCorner), tf.int32)
+#         nTimesObjTouched = tf.reduce_sum(nTimesObjTouched)
+#
+#         nObjTouched = nObjTouched + tf.cast(tf.greater_equal(nTimesObjTouched, 1), tf.int32)
+#
+#     R_bth = tf.equal(nObjTouched, tf.cast(numObjsPres_b, tf.int32))
+#     # R_bth = -minDist_obj
+#
+#     return R_bth, nObjTouched
+
 
 def getReward_touch(objCoordinates, sampled_locs, numObjsPresented, objSize, batch_size):
+    '''
+    provide reward according to the min distance of each object w.r.t to glimpses
+    :param objCoordinates:
+    :param sampled_locs:
+    :param numObjsPresented:
+    :param objSize:
+    :param batch_size:
+    :return:
+    '''
     # preallocate for the reward
     corner = tf.zeros((2,), dtype=tf.float32, name=None)
     # reward = np.zeros(batch_size)
     # loop over all examples in the batch
     # for b in xrange(batch_size):
     b = 0
+
     objCoords_b = objCoordinates[b,:,:]
     sampled_locs_b = sampled_locs[b,:,:]
     numObjsPres_b = numObjsPresented[b]
 
     nObjTouched = 0
-    # for the ith-example in the batch, loop over all object
+    # for the bth-example in the batch, loop over all object
     for j in xrange(maxNumObj):
         objCoords_cur = objCoords_b[j,:]
 
-        nTimesObjTouched = 0
-        # for the j-th objects, loop over all glimpses to determine if it is fixated
-        for i in xrange(nGlimpses):
-            sampledCoord_cur = toMnistCoordinates_tf(sampled_locs_b[i,:], img_size)
-            l2Diff_obj = l2distance(objCoords_cur, sampledCoord_cur)
-            l2Diff_corner = l2distance(corner, sampledCoord_cur)
-            isTouchingObj = tf.less_equal(l2Diff_obj, objSize)
-            isNotTouchingCorner = tf.greater_equal(l2Diff_corner, objSize)
-            # true if the current glimpse is fixated on an object
-            tempTouchFlag = tf.cast(tf.logical_and(isTouchingObj, isNotTouchingCorner), tf.int32)
+        # check glimpses to determine if it is fixated
+        sampledCoord = toMnistCoordinates_tf(sampled_locs_b, img_size)
+        l2Diff_obj = l2distance_tf(sampledCoord, objCoords_cur)
 
-            nTimesObjTouched = nTimesObjTouched + tempTouchFlag
+        minDist_obj = tf.reduce_min(l2Diff_obj)
 
-        # for the b-th example in the batch, if all objects are touched, then reward = 1, else reward = 0
-        nObjTouched = nObjTouched + tf.cast(tf.greater_equal(nTimesObjTouched,1), tf.int32)
+        l2Diff_corner = l2distance_tf(sampledCoord, corner)
+        isTouchingObj = tf.less_equal(l2Diff_obj, objSize)
+        isNotTouchingCorner = tf.greater_equal(l2Diff_corner, objSize)
+
+        nTimesObjTouched = tf.cast(tf.logical_and(isTouchingObj, isNotTouchingCorner), tf.int32)
+        nTimesObjTouched = tf.reduce_sum(nTimesObjTouched)
+
+        nObjTouched = nObjTouched + tf.cast(tf.greater_equal(nTimesObjTouched, 1), tf.int32)
 
     R_bth = tf.equal(nObjTouched, tf.cast(numObjsPres_b, tf.int32))
+    R_dist = - minDist_obj
+    return R_bth, nObjTouched, R_dist
 
-    return R_bth
 
 def calc_reward(outputs):
 
     # consider the action at the last time step
     outputs = outputs[-1] # look at ONLY THE END of the sequence
     outputs = tf.reshape(outputs, (batch_size, cell_out_size))
+    # get the action(classification)
+    p_y = tf.nn.softmax(tf.matmul(outputs, Wa_h_a) + Ba_h_a)
+    max_p_y = tf.arg_max(p_y, 1)
+    correct_y = tf.cast(labels_placeholder, tf.int32)
 
     # get the baseline
     b = tf.pack(baselines)
     b = tf.concat(2, [b, b])
     b = tf.reshape(b, (batch_size, (nGlimpses) * 2))
     no_grad_b = tf.stop_gradient(b)
-
-    # get the action(classification)
-    p_y = tf.nn.softmax(tf.matmul(outputs, Wa_h_a) + Ba_h_a)
-    max_p_y = tf.arg_max(p_y, 1)
-    correct_y = tf.cast(labels_placeholder, tf.int32)
-
-    # # reward for all examples in the batch
-    # R = tf.cast(tf.equal(max_p_y, correct_y), tf.float32)
-    # reward = tf.reduce_mean(R) # mean reward
-    # R = tf.reshape(R, (batch_size, 1))
-    # R = tf.tile(R, [1, (nGlimpses)*2])
 
     # get the location
     p_loc = gaussian_pdf(mean_locs, sampled_locs)
@@ -320,17 +364,20 @@ def calc_reward(outputs):
     p_loc = tf.reshape(p_loc, (batch_size, (nGlimpses) * 2))
 
     # get the reward for touching all objects
-    R = getReward_touch(objCoords_placeholder, sampled_locs, labels_placeholder, objSize, batch_size)
+    R, nObjTouched, R_dist = getReward_touch(objCoords_placeholder, sampled_locs, labels_placeholder, objSize, batch_size)
     R = tf.cast(R, tf.float32)
     reward = R
     R = tf.reshape(R, (batch_size, 1))
     R = tf.tile(R, [1, (nGlimpses) * 2])
 
+    R_dist = tf.cast(R_dist, tf.float32)
+    R_dist = tf.reshape(R_dist, (batch_size, 1))
+    R_dist = tf.tile(R_dist, [1, (nGlimpses) * 2])
+
     # define the cost function
-    J = tf.concat(1,[tf.log(p_loc + SMALL_NUM) * (R - no_grad_b)])
-    # J = tf.concat(1, [tf.log(p_y + SMALL_NUM) * (onehot_labels_placeholder), tf.log(p_loc + SMALL_NUM) * (R - no_grad_b)])
+    J = tf.concat(1,[tf.log(p_loc + SMALL_NUM) * (R_dist - no_grad_b)])
     J = tf.reduce_sum(J, 1)
-    J = J - tf.reduce_sum(tf.square(R - b), 1)
+    J = J - tf.reduce_sum(tf.square(R_dist - b), 1)
     J = tf.reduce_mean(J, 0)
     cost = -J
 
@@ -338,7 +385,7 @@ def calc_reward(outputs):
     optimizer = tf.train.MomentumOptimizer(lr, momentumValue)
     train_op = optimizer.minimize(cost, global_step)
 
-    return cost, reward, max_p_y, correct_y, train_op, b, tf.reduce_mean(b), tf.reduce_mean(R - b), p_loc_orig, p_loc, lr
+    return cost, reward, max_p_y, correct_y, train_op, b, tf.reduce_mean(b), tf.reduce_mean(R_dist - b), p_loc_orig, p_loc, nObjTouched, lr
 
 
 def evaluate():
@@ -427,29 +474,29 @@ with tf.Graph().as_default():
     glimpse_images = tf.concat(0, glimpse_images)
 
     # compute the reward
-    cost, reward, predicted_labels, correct_labels, train_op, b, avg_b, rminusb, p_loc_orig, p_loc, lr = calc_reward(outputs)
+    cost, reward, predicted_labels, correct_labels, train_op, b, avg_b, rminusb, p_loc_orig, p_loc, nObjTouched, lr = calc_reward(outputs)
 
     # tensorboard visualization for the parameters
-    variable_summaries(Wg_l_h, "glimpseNet_wts_location_hidden")
-    variable_summaries(Bg_l_h, "glimpseNet_bias_location_hidden")
-    variable_summaries(Wg_g_h, "glimpseNet_wts_glimpse_hidden")
-    variable_summaries(Bg_g_h, "glimpseNet_bias_glimpse_hidden")
-    variable_summaries(Wg_hg_gf1, "glimpseNet_wts_hiddenGlimpse_glimpseFeature1")
-    variable_summaries(Wg_hl_gf1, "glimpseNet_wts_hiddenLocation_glimpseFeature1")
-    variable_summaries(Bg_hlhg_gf1, "glimpseNet_bias_hGlimpse_hLocs_glimpseFeature1")
-
-
-    variable_summaries(Wc_g_h, "coreNet_wts_glimpse_hidden")
-    variable_summaries(Bc_g_h, "coreNet_bias_glimpse_hidden")
-
-    variable_summaries(Wb_h_b, "baselineNet_wts_hiddenState_baseline")
-    variable_summaries(Bb_h_b, "baselineNet_bias_hiddenState_baseline")
-
-    variable_summaries(Wl_h_l, "locationNet_wts_hidden_location")
-    variable_summaries(Bl_h_l, "locationNet_bias_hidden_location")
-
-    variable_summaries(Wa_h_a, 'actionNet_wts_hidden_action')
-    variable_summaries(Ba_h_a, 'actionNet_bias_hidden_action')
+    # variable_summaries(Wg_l_h, "glimpseNet_wts_location_hidden")
+    # variable_summaries(Bg_l_h, "glimpseNet_bias_location_hidden")
+    # variable_summaries(Wg_g_h, "glimpseNet_wts_glimpse_hidden")
+    # variable_summaries(Bg_g_h, "glimpseNet_bias_glimpse_hidden")
+    # variable_summaries(Wg_hg_gf1, "glimpseNet_wts_hiddenGlimpse_glimpseFeature1")
+    # variable_summaries(Wg_hl_gf1, "glimpseNet_wts_hiddenLocation_glimpseFeature1")
+    # variable_summaries(Bg_hlhg_gf1, "glimpseNet_bias_hGlimpse_hLocs_glimpseFeature1")
+    #
+    #
+    # variable_summaries(Wc_g_h, "coreNet_wts_glimpse_hidden")
+    # variable_summaries(Bc_g_h, "coreNet_bias_glimpse_hidden")
+    #
+    # variable_summaries(Wb_h_b, "baselineNet_wts_hiddenState_baseline")
+    # variable_summaries(Bb_h_b, "baselineNet_bias_hiddenState_baseline")
+    #
+    # variable_summaries(Wl_h_l, "locationNet_wts_hidden_location")
+    # variable_summaries(Bl_h_l, "locationNet_bias_hidden_location")
+    #
+    # variable_summaries(Wa_h_a, 'actionNet_wts_hidden_action')
+    # variable_summaries(Ba_h_a, 'actionNet_bias_hidden_action')
 
     # tensorboard visualization for the performance metrics
     tf.scalar_summary("reward", reward)
@@ -493,12 +540,12 @@ with tf.Graph().as_default():
                          onehot_labels_placeholder: dense_to_one_hot(nextY),
                          objCoords_placeholder: objCoords}
 
-            fetches = [train_op, cost, reward, predicted_labels, correct_labels, glimpse_images, b, avg_b, sampled_locs, lr]
+            fetches = [train_op, cost, reward, predicted_labels, correct_labels, glimpse_images, b, avg_b, sampled_locs, nObjTouched, lr]
             # feed them to the model
             results = sess.run(fetches, feed_dict=feed_dict)
 
             _, cost_fetched, reward_fetched, prediction_labels_fetched, correct_labels_fetched, f_glimpse_images_fetched,\
-            b_fetched, avg_b_fetched, sampled_locs_fetched, lr_fetched = results
+            b_fetched, avg_b_fetched, sampled_locs_fetched, nObjTouched_fetched, lr_fetched = results
 
 
             duration = time.time() - start_time
@@ -542,7 +589,8 @@ with tf.Graph().as_default():
                         # display the glimpses
                         for y in xrange(nGlimpses):
 
-                            txt.set_text('REWARD: %.2f\nSTEP: %i/%i' % (reward_fetched, (y + 1), nGlimpses))
+                            txt.set_text('REWARD: %.2f\n numObjTouched: %i\n STEP: %i/%i' %
+                                         (reward_fetched, nObjTouched_fetched, (y + 1), nGlimpses))
 
                             for x in xrange(depth):
                                 plt.subplot(depth, nCols, 1 + nCols * x)
