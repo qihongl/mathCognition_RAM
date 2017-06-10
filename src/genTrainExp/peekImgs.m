@@ -1,8 +1,7 @@
 %% make a demo img for the training set 
 clear; clf 
 
-allDataSets = {'multiObj', 'oneObj', 'oneObj_big'};
-dataSetName = allDataSets{2};
+dataSetName = 'fiveObj_centered';
 format = '.mat';
 
 % find the path 
@@ -11,7 +10,7 @@ path = strcat('../../datasets/', dataSetName);
 % get the images 
 % randsample(500-9,1)
 numImg = 9;
-startingIdx = randsample(500-numImg,1)
+startingIdx = randsample(100-numImg,1)
 for i = 1: numImg
     filename = sprintf(strcat(dataSetName,'%.3d'),startingIdx+i);
     filename = strcat(filename, format);

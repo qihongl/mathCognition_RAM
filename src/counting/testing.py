@@ -1,9 +1,7 @@
-import numpy as np
-x1 = np.arange(9.0).reshape((3, 3))
-x2 = np.array([3,3,3])
-r =  np.subtract(x1, x2)
-print x1
-r = ((x1 + 1)/2) * 3
+from matplotlib.pyplot import plot, draw, show
+plot([1,2,3])
+draw()
+print 'continue computation'
 
-print r
-
+# at the end call show to ensure window won't close.
+show()

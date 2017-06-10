@@ -242,7 +242,7 @@ def calc_R_glimpse(output, correct_y):
     R = tf.cast(tf.equal(max_p_y, correct_y), tf.float32)
     reward = tf.reduce_mean(R)  # mean reward
     R = tf.reshape(R, (batch_size, 1))
-    R = tf.tile(R, [1, (nGlimpses) * 2])
+    R = tf.tile(R, [1, 2])
     return R, reward, tf.log(p_y + SMALL_NUM) * onehot_labels_placeholder, max_p_y
 
 def calc_reward(outputs):
@@ -253,10 +253,17 @@ def calc_reward(outputs):
     '''
 
     correct_y = tf.cast(labels_placeholder, tf.int64)
+    R_list = []
     for o in xrange(len(outputs)):
         output = outputs[o] # look at ONLY THE END of the sequence
         output = tf.reshape(output, (batch_size, cell_out_size))
         R, reward, class_cost, max_p_y = calc_R_glimpse(output, correct_y)
+        R_list.append(R)
+        reward_unscaled = reward
+        # scaleFactor = np.exp(o) / (sum(np.exp(range(1,nGlimpses+1,1))))
+        # R *= scaleFactor
+        # reward *= scaleFactor
+        # class_cost *= scaleFactor
         if o == 0:
             Rs = R
             rewards = reward
@@ -265,6 +272,14 @@ def calc_reward(outputs):
             Rs += R
             rewards += reward
             class_costs += class_cost
+    # normalize
+    # Rs /= nGlimpses
+    # class_costs /= nGlimpses
+    print R
+    R_list = tf.convert_to_tensor(R_list)
+    R_list = tf.reshape(R_list, (batch_size, nGlimpses * 2))
+    print R_list
+    sys.exit('STOP')
 
     # get the baseline
     b = tf.pack(baselines)
@@ -278,9 +293,9 @@ def calc_reward(outputs):
     p_loc = tf.reshape(p_loc, (batch_size, (nGlimpses) * 2))
 
     # define the cost function
-    J = tf.concat(1, [class_costs, tf.log(p_loc + SMALL_NUM) * (Rs - no_grad_b)])
+    J = tf.concat(1, [class_costs, tf.log(p_loc + SMALL_NUM) * (R_list - no_grad_b)])
     J = tf.reduce_sum(J, 1)
-    J = J - tf.reduce_sum(tf.square(R - b), 1)
+    J = J - tf.reduce_sum(tf.square(R_list - b), 1)
     J = tf.reduce_mean(J, 0)
     cost = -J
 
@@ -288,7 +303,7 @@ def calc_reward(outputs):
     optimizer = tf.train.MomentumOptimizer(lr, momentumValue)
     train_op = optimizer.minimize(cost, global_step)
 
-    return cost, reward, max_p_y, correct_y, train_op, b, tf.reduce_mean(b), tf.reduce_mean(Rs - b), p_loc, lr
+    return cost, reward_unscaled, max_p_y, correct_y, train_op, b, tf.reduce_mean(b), tf.reduce_mean(Rs - b), p_loc, lr
 # def calc_reward(outputs):
 #
 #     # consider the action at the last time step
